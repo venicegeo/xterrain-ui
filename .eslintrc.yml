@@ -1,0 +1,43 @@
+env:
+    browser: true
+    es6: true
+
+plugins:
+    - html  # needed to parse scripts in .vue files
+
+parser: babel-eslint
+parserOptions:
+    sourceType: module
+
+extends: 'eslint:recommended'
+rules:
+    indent:
+        - error
+        - 4
+    linebreak-style:
+        - error
+        - unix
+    quotes:
+        - error
+        - single
+    brace-style:
+        - warn
+        - stroustrup
+    semi:
+        - error
+        - never
+    eqeqeq:
+        - error
+    no-alert:
+        - warn
+    no-console:
+        - off
+    no-shadow:
+        - warn
+    no-unused-vars:
+        - warn
+    no-use-before-define:
+        - error
+        - functions: false
+    valid-jsdoc:
+        - error
