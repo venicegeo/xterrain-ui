@@ -1,4 +1,6 @@
 {
+  "name": "xterrain-ui",
+  "version": "1.0.0",
   "dependencies": {
     "axios": "0.15.3",
     "font-awesome": "4.6.1",
