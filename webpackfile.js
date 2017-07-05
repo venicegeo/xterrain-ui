@@ -53,9 +53,26 @@ module.exports = {
         contentBase: path.join(__dirname, 'src'),
         proxy: {
             '/api': {
-                target: 'http://localhost:3000/',
+                target: 'http://localhost:8000/',
+                changeOrigin: true,
                 pathRewrite: {'^/api': ''},
-            }
+            },
+            '/basemaps': {
+                target: '-',
+                changeOrigin: true,
+                ignorePath: true,
+                router(req) {
+                    const segments = req.url.split('/')
+                    const path_ = segments.slice(3).join('/')
+                    switch (segments[2]) {
+                    case 'dark': return `http://a.basemaps.cartocdn.com/dark_all/${path_}`
+                    case 'light': return `http://a.basemaps.cartocdn.com/light_all/${path_}`
+                    case 'osm': return `https://osm.geointservices.io/osm_tiles/${path_}`
+                    case 'aerial': return `https://api.mapbox.com/v4/mapbox.satellite/${path_}?access_token=pk.eyJ1IjoiYmF6aWxlcmJ0IiwiYSI6ImNpbmpwcjlrMzB4cHN0dG0zdDJpMWV6ZjkifQ.7Vywvn-z3L6nfSeI4v-Rdg`
+                    case 'road': return `https://api.mapbox.com/v4/mapbox.outdoors/${path_}?access_token=pk.eyJ1IjoiYmF6aWxlcmJ0IiwiYSI6ImNpbmpwcjlrMzB4cHN0dG0zdDJpMWV6ZjkifQ.7Vywvn-z3L6nfSeI4v-Rdg`
+                    }
+                },
+            },
         },
     },
 
