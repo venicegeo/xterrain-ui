@@ -27,42 +27,38 @@
     <div class="classification-banner" style="bottom: 0;">UNCLASSIFIED // FOR TESTING AND DEVELOPMENT PURPOSES</div>
 
     <script>
-        var BASEMAPS = {
-            'dark': {
-                'url': 'http://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                'name': 'Dark',
-                'max_zoom': 19,
-                'attributions': '&copy; <a href="https://cartodb.com/attributions" target="_blank">CartoDB</a> ' +
-                                '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+        var BASEMAPS = [
+            {
+                id: 'dark',
+                name: 'Dark',
+                max_zoom: 19,
+                attributions: '&copy; <a href="https://cartodb.com/attributions" target="_blank" rel="noreferrer">CartoDB</a>, &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
             },
-            'light': {
-                'url': 'http://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-                'name': 'Light',
-                'max_zoom': 19,
-                'attributions': '&copy; <a href="https://cartodb.com/attributions" target="_blank">CartoDB</a> ' +
-                                '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+            {
+                id: 'light',
+                name: 'Light',
+                max_zoom: 19,
+                attributions: '&copy; <a href="https://cartodb.com/attributions" target="_blank" rel="noreferrer">CartoDB</a>, &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
             },
-            'osm': {
-                'url': 'https://osm.geointservices.io/osm_tiles/{z}/{x}/{y}.png64',
-                'name': 'OpenStreetMap',
-                'max_zoom': 20,
-                'attributions': '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+            {
+                id: 'osm',
+                name: 'OpenStreetMap',
+                max_zoom: 20,
+                attributions: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
             },
-            'aerial': {
-                'url': 'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.png64?access_token=pk.eyJ1IjoiYmF6aWxlcmJ0IiwiYSI6ImNpbmpwcjlrMzB4cHN0dG0zdDJpMWV6ZjkifQ.7Vywvn-z3L6nfSeI4v-Rdg',
-                'name': 'Aerial',
-                'max_zoom': 17,
-                'attributions': '&copy; <a href="https://cartodb.com/attributions" target="_blank">CartoDB</a> ' +
-                                '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+            {
+                id: 'aerial',
+                name: 'Aerial',
+                max_zoom: 17,
+                attributions: '&copy; <a href="https://mapbox.com/attributions" target="_blank" rel="noreferrer">MapBox</a>, &copy; <a href="https://www.digitalglobe.com/" target="_blank" rel="noreferrer">DigitalGlobe</a>, &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
             },
-            'road': {
-                'url': 'https://api.mapbox.com/v4/mapbox.outdoors/{z}/{x}/{y}.png64?access_token=pk.eyJ1IjoiYmF6aWxlcmJ0IiwiYSI6ImNpbmpwcjlrMzB4cHN0dG0zdDJpMWV6ZjkifQ.7Vywvn-z3L6nfSeI4v-Rdg',
-                'name': 'Roads',
-                'max_zoom': 20,
-                'attributions': '&copy; <a href="https://mapbox.com/attributions" target="_blank">MapBox</a> ' +
-                                '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+            {
+                id: 'road',
+                name: 'Road',
+                max_zoom: 20,
+                attributions: '&copy; <a href="https://mapbox.com/attributions" target="_blank" rel="noreferrer">MapBox</a>, &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
             },
-        }
+        ]
     </script>
     <script src="build.js"></script>
 </body>
