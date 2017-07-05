@@ -50,13 +50,26 @@ module.exports = {
     },
 
     devServer: {
+
+        // Reference: https://webpack.js.org/configuration/dev-server/
+
         contentBase: path.join(__dirname, 'src'),
         proxy: {
-            '/api': {
-                target: 'http://localhost:8000/',
-                changeOrigin: true,
-                pathRewrite: {'^/api': ''},
-            },
+
+            // References: https://webpack.js.org/configuration/dev-server/#devserver-proxy
+            //             https://github.com/chimurai/http-proxy-middleware#http-proxy-options
+
+            // FIXME -- Restore this when new API architecture comes online
+            // '/api': {
+            //     target: 'http://xterrain-api.dev.dev.east.paas.geointservices.io/',
+            //     changeOrigin: true,
+            //     pathRewrite: {'^/api': ''},
+            // },
+
+            '/api': { target: 'http://localhost:3001/' },
+            '/auth': { target: 'http://localhost:3001/' },
+            '/wms': { target: 'http://localhost:8080/geoserver/wms', pathRewrite: { '^/wms': '' } },
+
             '/basemaps': {
                 target: '-',
                 changeOrigin: true,
