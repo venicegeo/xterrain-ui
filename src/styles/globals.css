@@ -1,0 +1,75 @@
+@import "webfonts/index.css";
+
+* {
+    margin: 0;
+    box-sizing: inherit;
+}
+
+body {
+    box-sizing: border-box;
+    background-color: black;
+    color: white;
+    cursor: default;
+
+    font-family: 'Open Sans', sans-serif;
+    font-size: 14px;
+}
+
+a {
+    color: #00BCD4;
+}
+
+a:visited {
+    color: #00838F;
+}
+
+a:hover {
+    color: #E0F7FA;
+}
+
+a,
+button,
+label,
+input[type="checkbox"] {
+    cursor: pointer;
+}
+
+input:not([type="checkbox"]) {
+    box-sizing: border-box;
+    margin: 0;
+    padding: .5em 5px;
+    border: none;
+    background-color: #222;
+    box-shadow: 0 1px #00BCD4;
+    color: white;
+    font: 13px 'Open Sans';
+    outline: none;
+    transition: .1s ease-in-out;
+}
+
+input:focus::-webkit-input-placeholder {
+    color: #5f5f5f;
+}
+
+input:focus::placeholder {
+    /* Firefox */
+    color: #5f5f5f;
+}
+
+input:not([type="checkbox"]):hover {
+    box-shadow: 0 2px #00BCD4;
+}
+
+input:not([type="checkbox"]):focus {
+    background-color: #444;
+    border-radius: 2px;
+    box-shadow:
+        0 0 0 1px #222,
+        0 0 0 3px #00BCD4;
+}
+
+input:not([type="checkbox"]).invalid {
+    background-color: #D84315;
+    color: #FBE9E7;
+    box-shadow: 0 0 0 1px;
+}
