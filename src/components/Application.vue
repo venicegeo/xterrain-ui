@@ -1,9 +1,7 @@
 <template>
     <main id="Application">
         <PrimaryMap/>
-        <Operation
-            operation="georing"
-        />
+        <Operation/>
 
         <ErrorMask
             class="Application__errorMask"
@@ -21,7 +19,7 @@
 
     import ErrorMask from './ErrorMask.vue'
     import PrimaryMap from './PrimaryMap.vue'
-    import Operation from './Operation.vue'
+    import Operation from './Operation'
 
     export default {
         components: {

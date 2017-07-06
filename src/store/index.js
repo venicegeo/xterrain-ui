@@ -10,6 +10,8 @@ export function createStore () {
     return new Vuex.Store({
         strict: true,
         state: {
+            operation: 'viewshed',
+
             analytics: {
                 items: [],
                 isFetching: false,
@@ -40,6 +42,10 @@ export function createStore () {
                     pollingFrequency: frequency,
                     pollingRef: ref,
                 }
+            },
+
+            CHANGE_OPERATION(state, value) {
+                state.operation = value
             },
 
             FETCH_ANALYTICS_START(state) {

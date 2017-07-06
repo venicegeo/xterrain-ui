@@ -1,10 +1,18 @@
 <template>
-    <div class="Viewshed">Viewshed</div>
+    <div class="Viewshed">
+        <side-panel/>
+    </div>
 </template>
 
 <script>
+    import SidePanel from '../SidePanel.vue'
+
     export default {
-        name: 'Viewshed',
+        LABEL: 'Viewshed',
+
+        components: {
+            SidePanel,
+        },
     }
 </script>
 

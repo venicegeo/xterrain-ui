@@ -124,6 +124,8 @@
     import {SOURCE_ELEVATION} from '../../constants'
 
     export default {
+        LABEL: 'GeoRing Batch Processing',
+
         components: {
             BottomPanel,
             DateRange,
