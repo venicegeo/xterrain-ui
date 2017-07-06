@@ -16,3 +16,4 @@
 # Compile static assets only
 ./scripts/compile.sh
 ```
+
