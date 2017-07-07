@@ -6,15 +6,13 @@ import './styles/globals.css'
 import 'babel-polyfill'
 
 import Vue from 'vue'
-import Vuex from 'vuex'
 
-Vue.use(Vuex)
-
-import {createStore} from './store/index'
+import store from './store'
 import Application from './components/Application.vue'
 
+
 window.__vm__ = new Vue({
+    store,
     el: '#Application',
-    store: createStore(),
     render: h => h(Application),
 })

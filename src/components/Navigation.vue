@@ -4,12 +4,20 @@
             <span class="Navigation__title">xTERRAIN</span>
             <span class="Navigation__subtitle">A GEOINT Services Capability</span>
         </div>
-        <div class="Navigation__right">
-            <span class="Navigation__username">Joe User</span>
-            <span class="Navigation__logout">Log Out</span>
+        <div class="Navigation__right" v-if="user.isLoggedIn">
+            <span class="Navigation__username">{{ user.name || '???' }}</span> |
+            <a href="/auth/logout" class="Navigation__logout">Log Out</a>
         </div>
     </nav>
 </template>
+
+<script>
+    import { mapState } from 'vuex'
+
+    export default {
+        computed: mapState(['user']),
+    }
+</script>
 
 <style>
     .Navigation {
@@ -46,6 +54,7 @@
 
     .Navigation__right {
         right: 0;
+        padding-right: 1em;
         text-align: right;
     }
 
@@ -62,7 +71,6 @@
         display: inline-block;
         line-height: 50px;
         color: #607D8B;
-        padding: 0 1em;
     }
 
     .Navigation__subtitle {

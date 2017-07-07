@@ -1,7 +1,18 @@
 <template>
     <main id="Application">
-        <PrimaryMap/>
-        <Operation/>
+        <Navigation/>
+        <PrimaryMap
+            class="Application__map"
+            v-if="isSessionActive"
+        />
+        <Operation
+            class="Application__operation"
+            v-if="isSessionActive"
+        />
+        <Login
+            class="Application__login"
+            v-if="!isSessionActive"
+        />
 
         <ErrorMask
             class="Application__errorMask"
@@ -15,24 +26,32 @@
 </template>
 
 <script>
-    import { mapState, mapMutations, mapActions } from 'vuex'
+    import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 
     import ErrorMask from './ErrorMask.vue'
+    import Login from './Login.vue'
+    import Navigation from './Navigation.vue'
     import PrimaryMap from './PrimaryMap.vue'
     import Operation from './Operation'
 
     export default {
         components: {
             ErrorMask,
+            Login,
+            Navigation,
             PrimaryMap,
             Operation,
         },
 
         mounted () {
-            this.fetchAnalytics({ enablePolling: true })
+            this.fetchUserProfile()
+                .then(() => this.fetchAnalytics({ enablePolling: true }))
         },
 
-        computed: mapState(['errors']),
+        computed: {
+            ...mapGetters(['isSessionActive']),
+            ...mapState(['errors']),
+        },
 
         methods: {
             ...mapMutations({
@@ -40,6 +59,7 @@
             }),
 
             ...mapActions([
+                'fetchUserProfile',
                 'fetchAnalytics',
             ]),
         },
@@ -62,5 +82,11 @@
 
     .Application__errorMask {
         z-index: 999;
+    }
+
+    .Application__map,
+    .Application__operation,
+    .Application__login {
+        top: 50px !important;
     }
 </style>
