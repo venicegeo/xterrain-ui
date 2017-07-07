@@ -89,4 +89,16 @@
     .Application__login {
         top: 50px !important;
     }
+
+    .Application__operation {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+    }
+
+    .Application__operation > * {
+        pointer-events: auto;
+    }
 </style>
