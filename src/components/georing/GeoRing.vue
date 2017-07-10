@@ -639,7 +639,6 @@
     }
 
     .GeoRing .SourceList__caption,
-    .GeoRing .OperationList__caption,
     .GeoRing .FileUploader__caption,
     .GeoRing__rowCaption {
         display: inline-block;

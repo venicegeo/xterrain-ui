@@ -1,6 +1,6 @@
 <template>
     <div class="SidePanel">
-        <OperationList class="SidePanel__row"/>
+        <OperationList/>
         <slot/>
     </div>
 </template>
@@ -33,7 +33,7 @@
         padding: 1em;
     }
 
-    .SidePanel__row:nth-child(odd) {
+    .SidePanel__row:nth-of-type(odd) {
         background-color: #222;
     }
 </style>
