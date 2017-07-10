@@ -8,7 +8,7 @@
         <div class="OperationList__button" title="Click to choose an operation">
             <span class="OperationList__buttonIcon fa fa-flask"/>
             <span class="OperationList__buttonCaption">{{ caption }}</span>
-            <span class="OperationList__buttonChevron fa" :class="isOpen ? 'fa-close' : 'fa-chevron-down'"/>
+            <span class="OperationList__buttonChevron fa" :class="isOpen ? 'fa-chevron-up' : 'fa-chevron-down'"/>
         </div>
         <ul v-if="isOpen" class="OperationList__items">
             <li
