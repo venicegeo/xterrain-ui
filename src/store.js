@@ -6,6 +6,7 @@ import { getClient, onExpired } from './utils/session'
 const POLL_FREQUENCY_BUSY = 10000
 const POLL_FREQUENCY_IDLE = 300000
 
+const DEFAULT_OPERATION = 'viewshed'
 const KEY_IS_LOGGED_IN = 'IS_LOGGED_IN'
 
 
@@ -16,7 +17,7 @@ const store = new Vuex.Store({
     strict: true,
 
     state: {
-        operation: 'viewshed',
+        operation: location.hash.substr(1).trim() || DEFAULT_OPERATION,
 
         user: {
             isLoggedIn: JSON.parse(sessionStorage.getItem(KEY_IS_LOGGED_IN)) || false,
@@ -67,7 +68,9 @@ const store = new Vuex.Store({
         },
 
         CHANGE_OPERATION(state, value) {
+            value = value.trim()
             state.operation = value
+            location.hash = value
         },
 
         FETCH_ANALYTICS_START(state) {
@@ -195,8 +198,17 @@ const store = new Vuex.Store({
     },
 })
 
+console.debug('[store] Subscribing to session expiration event')
 onExpired(() => {
     store.commit('SESSION_EXPIRED')
+})
+
+console.debug('[store] Subscribing to browser hash navigation event')
+window.addEventListener('popstate', () => {
+    const operation = location.hash.substr(1).trim() || DEFAULT_OPERATION
+    if (store.state.operation !== operation) {
+        store.commit('CHANGE_OPERATION', operation)
+    }
 })
 
 window.__store__ = store  // DEBUG
