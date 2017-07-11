@@ -6,13 +6,46 @@ import logging
 import os
 import random
 
-from bottle import route, run, request, response, redirect
+from bottle import run, request, response, redirect, post, get, static_file
 
 import legion
 import geoserver
 
 
+API_KEY = '1234'
 SECRET_KEY = 'secret'
+
+DEFAULT_STYLE_ID = 'binary'
+
+DEFAULT_STYLE_DEFINITION = """
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<StyledLayerDescriptor version="1.0.0"
+    xsi:schemaLocation="http://www.opengis.net/sld StyledLayerDescriptor.xsd"
+    xmlns="http://www.opengis.net/sld"
+    xmlns:ogc="http://www.opengis.net/ogc"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <NamedLayer>
+    <Name>Viewshed Binary</Name>
+    <UserStyle>
+      <Title>Viewshed Binary Style</Title>
+      <FeatureTypeStyle>
+        <Rule>
+          <RasterSymbolizer>
+            <ColorMap>
+              <ColorMapEntry color="#008000" quantity="0"  opacity="0.0"/>
+              <ColorMapEntry color="#00FF00" quantity="1"  opacity="0.50"/>
+            </ColorMap>
+          </RasterSymbolizer>
+        </Rule>
+      </FeatureTypeStyle>
+    </UserStyle>
+  </NamedLayer>
+</StyledLayerDescriptor>
+"""
+
+
+_analytics = []
 
 
 def main():
@@ -23,14 +56,111 @@ def main():
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(name)s] %(levelname)-5s %(message)s')
 
+    _initialize_geoserver_workspaces()
+    _initialize_geoserver_styles()
+
     run(host=opts.host, port=opts.port, debug=True, reloader=True)
 
 
-@route('/api/analytics')
+@post('/api/viewshed/create_analytic')
+def create_viewshed():
+    if not _logged_in():
+        response.status = 401
+        return {'error': 'You are not logged in'}
+
+    try:
+        reader = PayloadReader(request.json)
+        name            = reader.string('name', min_length=1)
+        latitude        = reader.number('latitude', min_value=-90, max_value=90)
+        longitude       = reader.number('longitude', min_value=-180, max_value=180)
+        target_height   = reader.number('target_height')
+        observer_height = reader.number('observer_height', min_value=0)
+        outer_radius    = reader.number('outer_radius', min_value=1)
+    except PayloadReader.Error as err:
+        response.status = 400
+        return {'error': 'Invalid payload: {}'.format(err)}
+
+    analytic_id = '{:05}'.format(len(_analytics))
+    layer_id = os.urandom(5).hex()
+
+    layer = {
+        'id': layer_id,
+        'geoserver_id': None,
+        'name': 'Viewshed ({})'.format(layer_id),
+        'operation': 'viewshed',
+        'status': 'Ready',
+        'processing_started_on': _create_timestamp(),
+        'processing_ended_on': None,
+    }
+
+    analytic = {
+        'id': analytic_id,
+        'name': name,
+        'status': 'Ready',
+        'created_on': _create_timestamp(),
+        'layers': [layer],
+    }
+
+    try:
+        tiff_path = legion.execute(
+            operation='LegionViewshedOperation',
+            source='ASTER',
+            format_='GEOTIFF',
+            params={
+                'observerCoord': '{longitude}+{latitude}'.format(longitude=longitude, latitude=latitude),
+                'observerHeight': observer_height,
+                'targetHeight': target_height,
+                'outerRadius': outer_radius,
+                'normalizeScaleValue': 255,  # This magic number looks like it's required by Legion Core for... reasons?
+            },
+            context=analytic['id'],
+        )
+
+        layer['geoserver_id'] = geoserver.publish_geotiff('viewshed', tiff_path, title=name, style=DEFAULT_STYLE_ID)
+    except Exception as err:
+        if isinstance(err, geoserver.ObjectExists):
+            layer['geoserver_id'] = os.path.basename(tiff_path)  # HACK
+        else:
+            print(err)  # ¯\_(ツ)_/¯
+            analytic['status'] = layer['status'] = 'Error'
+
+    layer['processing_ended_on'] = _create_timestamp()
+    response.status = 201
+
+    _analytics.append(analytic)
+
+    return {'analytic': analytic}
+
+
+@get('/api/<operation>/downloads/<layer_id>.TIF')
+def download_tiff(operation, layer_id):
+    if not _logged_in():
+        response.status = 401
+        return {'error': 'You are not logged in'}
+
+    layer = None
+    for a in _analytics:
+        for l in a['layers']:
+            if l['id'] == layer_id:
+                layer = l
+                break
+
+    if not layer:
+        response.status = 404
+        return {'error': 'Layer "{}" not found'.format(layer_id)}
+
+    return static_file(layer['geoserver_id'], legion.LEGION_CACHE_DIR, mimetype='image/tiff')
+
+
+@get('/api/analytics')
 def list_analytics():
     if not _logged_in():
         response.status = 401
         return {'error': 'You are not logged in'}
+
+    if _analytics:
+        return {'analytics': _analytics}
+
     return {
         'analytics': [
             {
@@ -168,7 +298,7 @@ def list_analytics():
     }
 
 
-@route('/api/georing/files')
+@get('/api/georing/files')
 def list_georing_files():
     if not _logged_in():
         response.status = 401
@@ -178,7 +308,7 @@ def list_georing_files():
     }
 
 
-@route('/api/georing/aggregates')
+@get('/api/georing/aggregates')
 def list_georing_aggregates():
     if not _logged_in():
         response.status = 401
@@ -195,7 +325,7 @@ def list_georing_aggregates():
     }
 
 
-@route('/auth/login')
+@get('/auth/login')
 def login():
     return """
         <h1>fake-geoaxis</h1>
@@ -217,22 +347,22 @@ def login():
     )
 
 
-@route('/auth/login/callback')
+@get('/auth/login/callback')
 def login_callback():
     response.set_cookie('mock_session', os.urandom(8), secret=SECRET_KEY, path='/', httponly=True, max_age=3600)
     response.set_cookie('csrf_token', os.urandom(8).hex(), path='/')
     return redirect('/')
 
 
-@route('/auth/logout')
+@get('/auth/logout')
 def logout():
     response.delete_cookie('mock_session', path='/', httponly=True)
     response.delete_cookie('csrf_token', path='/')
     return redirect('/')
 
 
-@route('/')
-@route('/auth/whoami')
+@get('/')  # DEBUG
+@get('/auth/whoami')
 def whoami():
     if not _logged_in():
         response.status = 401
@@ -245,13 +375,80 @@ def whoami():
     }
 
 
-def _create_timestamp(min_seconds=5, max_seconds=3000):
+def _create_timestamp(min_seconds=0, max_seconds=0):
     return (datetime.datetime.utcnow() -
             datetime.timedelta(seconds=random.randint(min_seconds, max_seconds))).isoformat() + 'Z'
 
 
+def _initialize_geoserver_workspaces():
+    for workspace in ('viewshed', 'georing',):
+        if geoserver.workspace_exists(workspace):
+            continue
+        geoserver.create_workspace(workspace)
+
+
+def _initialize_geoserver_styles():
+    if geoserver.style_exists(DEFAULT_STYLE_ID):
+        return
+    geoserver.create_style(DEFAULT_STYLE_ID, DEFAULT_STYLE_DEFINITION)
+
+
 def _logged_in():
-    return request.get_cookie('mock_session', secret=SECRET_KEY) is not None
+    return request.get_cookie('mock_session', secret=SECRET_KEY) is not None\
+           or request.auth == (API_KEY, '')
+
+
+class PayloadReader:
+    class Error(Exception):
+        pass
+
+    def __init__(self, payload):
+        if not isinstance(payload, dict):
+            raise self.Error('payload must be a dictionary')
+        self._payload = payload
+
+    def _read(self, key, optional):
+        value = self._payload.get(key)
+        if value is None and not optional:
+            raise self.Error('"{}" is not set'.format(key))
+        return value
+
+    def string(self, key, min_length=0, max_length=256, optional=False):
+        value = self._read(key, optional)
+
+        value = str(value).strip()
+
+        if min_length is not None and max_length is not None and not min_length <= len(value) <= max_length:
+            raise self.Error('"{}" must be a string between {} and {} chars in length'.format(key, min_length, max_length))
+
+        return value
+
+    def bool(self, key, optional=False):
+        value = self._read(key, optional)
+
+        if not isinstance(value, bool):
+            raise self.Error('"{}" must be a boolean'.format(key))
+
+        return value
+
+    def number(self, key, type_=float, min_value=None, max_value=None, optional=False):
+        value = self._read(key, optional)
+
+        try:
+            value = type_(value)
+        except:
+            raise self.Error('"{}" is not a valid {}'.format(key, type_.__name__))
+
+        if min_value is not None and max_value is not None and not min_value <= value <= max_value:
+            raise self.Error('"{}" must be a {} between {} and {}'.format(key, type_.__name__, min_value, max_value))
+
+        if min_value is not None and value < min_value:
+            raise self.Error('"{}" must be a {} gte {}'.format(key, type_.__name__, min_value))
+
+        if max_value is not None and value > max_value:
+            raise self.Error('"{}" must be a {} lte {}'.format(key, type_.__name__, max_value))
+
+        return value
 
 
 if __name__ == '__main__':
