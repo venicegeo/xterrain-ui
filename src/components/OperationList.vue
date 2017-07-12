@@ -129,13 +129,13 @@
     }
 
     .OperationList__item--isSelected {
-        background-color: #00BCD4 !important;
+        background-color: hsl(187, 100%, 30%) !important;  /* Based on PacificBlue */
         text-shadow: 1px 1px rgba(0,0,0,.1);
         font-weight: bold;
     }
 
     .OperationList__item--isSelected:hover {
-        background-color: hsl(187, 100%, 46%) !important;  /* Based on PacificBlue */
+        background-color: hsl(187, 100%, 40%) !important;  /* Based on PacificBlue */
     }
 
     .OperationList__item--isSelected:first-child {

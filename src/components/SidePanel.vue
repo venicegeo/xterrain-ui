@@ -30,10 +30,10 @@
 
     .SidePanel__row {
         display: block;
-        padding: 1em;
+        padding: 2em 1em;
     }
 
-    .SidePanel__row:nth-of-type(odd) {
+    .SidePanel__row:nth-child(even) {
         background-color: #222;
     }
 </style>
