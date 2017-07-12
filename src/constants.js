@@ -1,3 +1,6 @@
 export const SOURCE_ELEVATION = 'ELEVATION'
 export const SOURCE_HI_RES_ELEVATION = 'HI_RES_ELEVATION'
 export const SOURCE_FRICTION_SURFACE = 'FRICTION_SURFACE'
+
+export const MIN_ALTITUDE = -418  // For practical purposes...
+export const MAX_ALTITUDE = 60000  // For practical purposes...

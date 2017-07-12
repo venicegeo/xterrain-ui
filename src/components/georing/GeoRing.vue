@@ -37,9 +37,9 @@
                     </tbody>
                 </table>
 
-                <button class="GeoRing__button" :disabled="!canSubmit" @click="createAnalytic">
+                <LargeButton :disabled="!canSubmit" @click="createAnalytic">
                     Create Analytic
-                </button>
+                </LargeButton>
             </div>
 
             <RunningAnalyticsList/>
@@ -109,6 +109,7 @@
     import moment from 'moment'
 
     import BottomPanel from '../BottomPanel.vue'
+    import LargeButton from '../LargeButton.vue'
     import ErrorMask from '../ErrorMask.vue'
     import LoadingMask from '../LoadingMask.vue'
     import RunningAnalyticsList from '../RunningAnalyticsList.vue'
@@ -132,6 +133,7 @@
             ErrorMask,
             FileUploader,
             RunningAnalyticsList,
+            LargeButton,
             LoadingMask,
             SidePanel,
             SortCaret,
@@ -641,7 +643,8 @@
     .GeoRing .SourceList__caption,
     .GeoRing .FileUploader__caption,
     .GeoRing__rowCaption {
-        display: inline-block;
+        display: block;
+        margin-bottom: .25em;
         min-width: 100px;
     }
 
@@ -651,6 +654,7 @@
     }
 
     .GeoRing__metrics {
+        margin-bottom: 30px;
         width: 100%;
         font-size: 12px;
         border-collapse: collapse;
@@ -675,45 +679,7 @@
     }
 
     .GeoRing__name input {
-        width: calc(100% - 115px);
-    }
-
-    .GeoRing__button {
-        display: block;
-        margin: 30px auto 0;
-        padding: .75em;
-        width: 85%;
-        background-color: #00BCD4;
-        border: none;
-        color: white;
-        border-radius: 2px;
-        box-shadow:
-            0 3px #00838F,
-            0 -1px hsl(187, 100%, 45%);  /* Based on PacificBlue */
-        font-size: 20px;
-        font-family: inherit;
-        text-transform: uppercase;
-        letter-spacing: .1em;
-        cursor: pointer;
-        outline: none;
-    }
-
-    .GeoRing__button:hover {
-        background-color: hsl(187, 100%, 45%);  /* Based on PacificBlue */
-    }
-
-    .GeoRing__button:active {
-        background-color: #00838F;
-        box-shadow: 0 -2px hsl(185, 100%, 18%);  /* Based on BlueLagoon */
-        transform: translateY(2px);
-    }
-
-    .GeoRing__button:disabled {
-        background-color: #333;
-        color: #888;
-        box-shadow: none;
-        transform: none;
-        cursor: not-allowed;
+        width: 100%;
     }
 
     .GeoRing__loadingMask {
