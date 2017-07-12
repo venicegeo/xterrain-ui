@@ -49,7 +49,11 @@ export function init(element) {
  * @returns {void}
  */
 export function flyToBounds(bounds, options) {
-    _map.flyToBounds(bounds, options)
+    _map.flyToBounds(bounds, {
+        duration: 0.25,
+        easeLinearity: 0.7,
+        ...options,
+    })
 }
 
 /**
