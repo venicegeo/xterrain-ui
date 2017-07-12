@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="30px" height="15px" viewBox="0 0 30 15" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 43.2 (39069) - http://www.bohemiancoding.com/sketch -->
+    <title>point_marker</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <polygon id="path-1" points="14.2105263 15 28.4210526 0 0 0"></polygon>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="point_marker">
+            <g id="Group">
+                <polygon id="Triangle-Copy" fill="#000000" opacity="0.5" points="14.2105263 15 30 7.33333333 6.53760548 6.66666667"></polygon>
+                <g id="Triangle">
+                    <use fill="#50E3C2" fill-rule="evenodd" xlink:href="#path-1"></use>
+                    <path stroke="#FFFFFF" stroke-width="2" d="M14.2105263,13.545972 L2.32486867,1 L26.096184,1 L14.2105263,13.545972 Z"></path>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
