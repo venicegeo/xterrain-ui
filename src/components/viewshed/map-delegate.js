@@ -72,15 +72,26 @@ export function renderPoint({ point, radius }) {
 
     const latlng = { lat: point.latitude, lng: point.longitude }
 
-    _features
-        .clearLayers()
-        .addLayer(L.marker(latlng, {
+    if (_features.marker) {
+        _features.marker.setLatLng(latlng)
+    }
+    else {
+        _features.marker = L.marker(latlng, {
             icon: POINT_MARKER_ICON,
-        }))
-        .addLayer(L.circle(latlng, {
+        }).addTo(_features)
+    }
+
+    if (_features.footprint) {
+        _features.footprint
+            .setLatLng(latlng)
+            .setRadius(radius)
+    }
+    else {
+        _features.footprint = L.circle(latlng, {
             className: FOOTPRINT_CLASS,
             radius,
-        }))
+        }).addTo(_features)
+    }
 }
 
 
