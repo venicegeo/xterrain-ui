@@ -37,9 +37,9 @@
                     </tbody>
                 </table>
 
-                <LargeButton :disabled="!canSubmit" @click="createAnalytic">
+                <BigButton :disabled="!canSubmit" @click="createAnalytic">
                     Create Analytic
-                </LargeButton>
+                </BigButton>
             </div>
 
             <RunningAnalyticsList/>
@@ -109,7 +109,7 @@
     import moment from 'moment'
 
     import BottomPanel from '../BottomPanel.vue'
-    import LargeButton from '../LargeButton.vue'
+    import BigButton from '../BigButton.vue'
     import ErrorMask from '../ErrorMask.vue'
     import LoadingMask from '../LoadingMask.vue'
     import RunningAnalyticsList from '../RunningAnalyticsList.vue'
@@ -133,7 +133,7 @@
             ErrorMask,
             FileUploader,
             RunningAnalyticsList,
-            LargeButton,
+            BigButton,
             LoadingMask,
             SidePanel,
             SortCaret,
@@ -650,7 +650,9 @@
 
     .GeoRing__controls {
         padding: 30px;
-        background-color: #111;
+        background-color: #1a2327;
+        border-top: 1px solid #333;
+        border-bottom: 1px solid #333;
     }
 
     .GeoRing__metrics {
@@ -669,12 +671,12 @@
     .GeoRing__metrics th {
         width: 50%;
         text-align: right;
-        color: #757575;
+        color: hsl(179, 15%, 30%);  /* Based on GulfStream */
         font-weight: normal;
     }
 
     .GeoRing__metrics td {
-        color: #ccc;
+        color: hsl(179, 25%, 65%);  /* Based on GulfStream */
         font-weight: bold;
     }
 
