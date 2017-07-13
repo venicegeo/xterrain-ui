@@ -62,6 +62,30 @@ def main():
     run(host=opts.host, port=opts.port, debug=True, reloader=True)
 
 
+@get('/api/sources')
+def list_sources():
+    if not _logged_in():
+        response.status = 401
+        return {'error': 'You are not logged in'}
+
+    response.set_header('Cache-Control', 'max-age=86400')
+
+    return {
+        'sources': legion.get_sources(),
+    }
+
+
+@get('/api/sources/<source>')
+def get_source_footprint(source):
+    if not _logged_in():
+        response.status = 401
+        return {'error': 'You are not logged in'}
+
+    response.set_header('Cache-Control', 'max-age=86400')
+
+    return legion.get_source_footprint(source)
+
+
 @post('/api/viewshed/create_analytic')
 def create_viewshed():
     if not _logged_in():

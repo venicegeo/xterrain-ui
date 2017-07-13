@@ -1,7 +1,10 @@
+import datetime as dt
+import json
 import logging
 import os
 import urllib.parse
 import re
+import xml.etree.ElementTree as et
 
 import requests
 
@@ -80,6 +83,133 @@ def execute(operation, source, format_, params, context=None):
             f.write(chunk)
 
     return cachefile_path
+
+
+def get_sources():
+    _check_settings()
+
+    url = '{}://{}/legion?{}'.format(
+        LEGION_SCHEME,
+        LEGION_HOST,
+        urllib.parse.urlencode({
+            'REQUEST': 'DataSources',
+            'FORMAT': 'JSON',
+            'token': LEGION_TOKEN,
+        }),
+    )
+
+    cachefile_path = os.path.join(LEGION_CACHE_DIR, 'DATASOURCES_{:%Y%m%d}.JSON'.format(dt.datetime.utcnow()))
+    if os.path.exists(cachefile_path):
+        _log.info('Read "%s" from cache', os.path.basename(cachefile_path))
+        with open(cachefile_path) as f:
+            return json.load(f)
+
+    _log.info('Looking up available datasources via "%s"', url)
+    try:
+        response = requests.get(url)
+    except requests.ConnectionError as err:
+        _log.error('Legion is unreachable'
+                   '---\n\n'
+                   'Error: %s\n\n'
+                   '---', err)
+        raise Error('Legion is unreachable: {}'.format(err))
+
+    if not response.ok:
+        _log.error('Could not look up datasources: Legion returned HTTP %s:\n'
+                   '---\n'
+                   'Response: %s\n'
+                   '---',
+                   response.status_code, response.text)
+        raise Error('Legion returned HTTP {}'.format(response.status_code))
+
+    sources = []
+    try:
+        for descriptor in response.json()['DataSources']:
+            sources.append({
+                'id':           descriptor['label'],
+                'name':         descriptor['label'].upper().replace('_', ' '),
+                'description':  descriptor['description'],
+                'bbox':         [float(s.strip()) for s in descriptor['bbox'].split(',')],
+                'group_id':     descriptor['subtype'],
+                'last_checked': dt.datetime.utcnow().isoformat() + 'Z',
+            })
+    except KeyError:
+        _log.error('Legion returned malformed datasource listing:\n'
+                   '---\n'
+                   'Response: %s\n'
+                   '---',
+                   response.text)
+        raise Error('malformed response')
+
+    with open(cachefile_path, 'w') as f:
+        json.dump(sources, f, indent=4)
+
+    return sources
+
+
+def get_source_footprint(source):
+    url = '{}://{}/legion?{}'.format(
+        LEGION_SCHEME,
+        LEGION_HOST,
+        urllib.parse.urlencode({
+            'REQUEST': 'Footprint',
+            'DATASOURCE': source,
+            'token': LEGION_TOKEN,
+        }),
+    )
+
+    cachefile_path = os.path.join(LEGION_CACHE_DIR, 'DATASOURCE_FOOTPRINT_{}.JSON'.format(source))
+    if os.path.exists(cachefile_path):
+        _log.info('Read "%s" from cache', os.path.basename(cachefile_path))
+        with open(cachefile_path) as f:
+            return json.load(f)
+
+    _log.info('Fetching footprint for datasource "%s" via "%s"', source, url)
+    try:
+        response = requests.get(url)
+    except requests.ConnectionError as err:
+        _log.error('Legion is unreachable'
+                   '---\n\n'
+                   'Error: %s\n\n'
+                   '---', err)
+        raise Error('Legion is unreachable: {}'.format(err))
+
+    if not response.ok:
+        _log.error('Lookup failed: Legion returned HTTP %s:\n'
+                   '---\n'
+                   'Response: %s\n'
+                   '---',
+                   response.status_code, response.text)
+        raise Error('Legion returned HTTP {}'.format(response.status_code))
+
+    xmlns = {
+        'kml': 'http://www.opengis.net/kml/2.2',
+    }
+
+    doc = et.fromstring(response.text)
+
+    properties = None
+    for d in get_sources():
+        if d['id'] == source:
+            properties = d
+
+    coordinates = []
+    for node in doc.findall('.//kml:LinearRing/kml:coordinates', xmlns):
+        coordinates.append([[float(coord) for coord in pairs.split(',')] for pairs in node.text.strip().split()])
+
+    feature = {
+        'type': 'Feature',
+        'geometry': {
+            'type': 'Polygon',
+            'coordinates': coordinates,
+        },
+        'properties': properties,
+    }
+
+    with open(cachefile_path, 'w') as f:
+        json.dump(feature, f, indent=4)
+
+    return feature
 
 
 class Error(Exception):
