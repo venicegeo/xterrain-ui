@@ -71,6 +71,7 @@ def create_viewshed():
     try:
         reader = PayloadReader(request.json)
         name            = reader.string('name', min_length=1)
+        source          = reader.string('source', min_length=1)
         latitude        = reader.number('latitude', min_value=-90, max_value=90)
         longitude       = reader.number('longitude', min_value=-180, max_value=180)
         target_height   = reader.number('target_height')
@@ -86,7 +87,7 @@ def create_viewshed():
     layer = {
         'id': layer_id,
         'geoserver_id': None,
-        'name': 'Viewshed ({})'.format(layer_id),
+        'name': 'Viewshed ({} @ {}, {})'.format(source, round(latitude, 3), round(longitude, 3)),
         'operation': 'viewshed',
         'status': 'Ready',
         'processing_started_on': _create_timestamp(),
@@ -104,7 +105,7 @@ def create_viewshed():
     try:
         tiff_path = legion.execute(
             operation='LegionViewshedOperation',
-            source='ASTER',
+            source=source,
             format_='GEOTIFF',
             params={
                 'observerCoord': '{longitude}+{latitude}'.format(longitude=longitude, latitude=latitude),

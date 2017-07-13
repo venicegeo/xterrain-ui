@@ -1,8 +1,27 @@
 <template>
-    <button class="BigButton">
+    <button class="BigButton" @click="emitClick">
         <slot/>
     </button>
 </template>
+
+<script>
+    export default {
+        props: {
+            'onClick': Function,
+        },
+
+        methods: {
+            emitClick() {
+                if (!this.onClick) {
+                    console.warn('[BigButton] No `onClick` handler is registered...')
+                    return
+                }
+
+                this.onClick()
+            }
+        },
+    }
+</script>
 
 <style>
     .BigButton {
