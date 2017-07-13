@@ -311,7 +311,13 @@ def list_georing_files():
         response.status = 401
         return {'error': 'You are not logged in'}
     return {
-        'files': [],
+        'files': [
+            {
+                'id': '1234',
+                'name': 'FIXTURE.FILE',
+                'size': 999999999,
+            }
+        ],
     }
 
 
@@ -321,14 +327,32 @@ def list_georing_aggregates():
         response.status = 401
         return {'error': 'You are not logged in'}
     return {
-        'aggregates': [],
-        'total_count': 0,
+        'aggregates': [
+            {
+                'identifier': 'FIXTURE_IDENT_01',
+                'points': [[30, 30], [0, 0], [0, 15], [15, 15]],
+                'file_names': ['something.txt'],
+                'count': 4,
+            },
+        ],
+        'total_count': 4,
         'criteria': {
-            'file_name': '',
-            'identifier': '',
-            'min_date': None,
-            'max_date': None,
+            'file_name': request.GET.get('file_name', ''),
+            'identifier': request.GET.get('identifier', ''),
+            'min_date': request.GET.get('min_date'),
+            'max_date': request.GET.get('max_date'),
         },
+    }
+
+
+@post('/api/georing/files')
+def index():
+    return {
+        'file': {
+            'id': os.urandom(5).hex(),
+            'name': 'wat',
+            'size': 12345,
+        }
     }
 
 
