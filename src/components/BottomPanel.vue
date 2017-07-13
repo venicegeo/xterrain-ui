@@ -8,6 +8,8 @@
 </template>
 
 <script>
+    import { triggerReflow } from '../primary-map'
+
     export default {
         data() {
             return {
@@ -16,10 +18,12 @@
         },
         mounted() {
             document.body.classList.add('BottomPanel--isOpen')
+            triggerReflow()
         },
         beforeDestroy() {
             document.body.classList.remove('BottomPanel--isOpen')
             document.body.classList.remove('BottomPanel--isExpanded')
+            triggerReflow()
         },
         methods: {
             toggleExpanded() {
