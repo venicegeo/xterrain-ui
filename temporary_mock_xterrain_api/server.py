@@ -117,17 +117,21 @@ def create_viewshed():
         )
 
         layer['geoserver_id'] = geoserver.publish_geotiff('viewshed', tiff_path, title=name, style=DEFAULT_STYLE_ID)
+    except geoserver.ObjectExists:
+        layer['geoserver_id'] = os.path.basename(tiff_path)  # HACK
+    except legion.ExecutionFailed as err:
+        response.status = err.status
+        return {'error': 'Legion execution failed: {}'.format(err)}
     except Exception as err:
-        if isinstance(err, geoserver.ObjectExists):
-            layer['geoserver_id'] = os.path.basename(tiff_path)  # HACK
-        else:
-            print(err)  # ¯\_(ツ)_/¯
-            analytic['status'] = layer['status'] = 'Error'
+        print(err)  # ¯\_(ツ)_/¯
+        response.status = 500
+        return {'error': 'Unknown error occurred'.format(err)}
 
     layer['processing_ended_on'] = _create_timestamp()
-    response.status = 201
 
     _analytics.append(analytic)
+
+    response.status = 201
 
     return {'analytic': analytic}
 
@@ -157,6 +161,8 @@ def list_analytics():
     if not _logged_in():
         response.status = 401
         return {'error': 'You are not logged in'}
+
+    _extend_session()
 
     if _analytics:
         return {'analytics': _analytics}
@@ -378,6 +384,13 @@ def whoami():
 def _create_timestamp(min_seconds=0, max_seconds=0):
     return (datetime.datetime.utcnow() -
             datetime.timedelta(seconds=random.randint(min_seconds, max_seconds))).isoformat() + 'Z'
+
+
+def _extend_session():
+    cookie = request.get_cookie('mock_session', secret=SECRET_KEY)
+    if not cookie:
+        return
+    response.set_cookie('mock_session', cookie, secret=SECRET_KEY, path='/', httponly=True, max_age=3600)
 
 
 def _initialize_geoserver_workspaces():
