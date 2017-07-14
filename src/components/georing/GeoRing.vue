@@ -122,7 +122,7 @@
 
     import * as MapDelegate from './map-delegate'
 
-    import {SOURCE_ELEVATION} from '../../constants'
+    import {SOURCE_GROUP_ELEVATION} from '../../constants'
 
     export default {
         LABEL: 'GeoRing Batch Processing',
@@ -158,7 +158,7 @@
 
         data() {
             return {
-                SUPPORTED_SOURCES: [SOURCE_ELEVATION],
+                SUPPORTED_SOURCES: [SOURCE_GROUP_ELEVATION],
                 aggregates: [],
                 filters: {
                     identifier: '',

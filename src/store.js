@@ -32,6 +32,11 @@ const store = new Vuex.Store({
             subscriptions: [],
         },
 
+        sources: {
+            items: [],
+            isFetching: false,
+        },
+
         errors: [],
     },
 
@@ -74,15 +79,29 @@ const store = new Vuex.Store({
         },
 
         FETCH_ANALYTICS_START(state) {
-            state.analytics = { ...state.analytics, isFetching: true }
+            state.analytics.isFetching = true
         },
 
         FETCH_ANALYTICS_SUCCESS(state, analytics) {
-            state.analytics = { ...state.analytics, items: analytics, isFetching: false }
+            state.analytics.items = analytics
+            state.analytics.isFetching = false
         },
 
         FETCH_ANALYTICS_FAIL(state) {
-            state.analytics = { ...state.analytics, isFetching: false }
+            state.analytics.isFetching = false
+        },
+
+        FETCH_SOURCES_START(state) {
+            state.sources.isFetching = true
+        },
+
+        FETCH_SOURCES_SUCCESS(state, sources) {
+            state.sources.items = sources
+            state.sources.isFetching = false
+        },
+
+        FETCH_SOURCES_FAIL(state) {
+            state.sources.isFetching = false
         },
 
         APPEND_ERROR(state, { heading, message }) {
@@ -97,6 +116,10 @@ const store = new Vuex.Store({
     getters: {
         completedAnalytics(state) {
             return state.analytics.items.filter(a => a.status === 'Ready')
+        },
+
+        isLoadingSources(state) {
+            return state.sources.isFetching
         },
 
         isSessionActive(state) {
@@ -171,6 +194,28 @@ const store = new Vuex.Store({
                         message: err.response
                             ? 'An unknown server error prevents us from listing your analytics.'
                             : `An application error prevents us from listing your analytics (${err.message})`,
+                    })
+                })
+        },
+
+        fetchSources(context) {
+            context.commit('FETCH_SOURCES_START')
+            return getClient().get('/api/sources')
+                .then(response => {
+                    context.commit('FETCH_SOURCES_SUCCESS', response.data.sources)
+                })
+                .catch(err => {
+                    context.commit('FETCH_SOURCES_FAIL')
+
+                    if (err.response && err.response.status === 401) {
+                        return
+                    }
+
+                    context.commit('APPEND_ERROR', {
+                        heading: 'Could not fetch user profile',
+                        message: err.response
+                            ? `An unknown server error prevents us from looking up your profile (HTTP ${err.response.status})`
+                            : `An application error prevents us from looking up your profile (${err.message})`,
                     })
                 })
         },

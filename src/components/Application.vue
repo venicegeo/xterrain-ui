@@ -22,6 +22,12 @@
             :key="error"
             v-for="error in errors"
         />
+
+        <LoadingMask
+            v-if="isLoadingSources"
+            class="Application__loadingMask"
+            caption="Loading available data sources"
+        />
     </main>
 </template>
 
@@ -29,6 +35,7 @@
     import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 
     import ErrorMask from './ErrorMask.vue'
+    import LoadingMask from './LoadingMask.vue'
     import Login from './Login.vue'
     import Navigation from './Navigation.vue'
     import PrimaryMap from './PrimaryMap.vue'
@@ -37,6 +44,7 @@
     export default {
         components: {
             ErrorMask,
+            LoadingMask,
             Login,
             Navigation,
             PrimaryMap,
@@ -45,11 +53,17 @@
 
         mounted () {
             this.fetchUserProfile()
-                .then(() => this.fetchAnalytics({ enablePolling: true }))
+                .then(() => Promise.all([
+                    this.fetchSources(),
+                    this.fetchAnalytics({ enablePolling: true }),
+                ]))
         },
 
         computed: {
-            ...mapGetters(['isSessionActive']),
+            ...mapGetters([
+                'isSessionActive',
+                'isLoadingSources',
+            ]),
             ...mapState(['errors']),
         },
 
@@ -59,8 +73,9 @@
             }),
 
             ...mapActions([
-                'fetchUserProfile',
                 'fetchAnalytics',
+                'fetchUserProfile',
+                'fetchSources',
             ]),
         },
     }
@@ -100,5 +115,9 @@
 
     .Application__operation > * {
         pointer-events: auto;
+    }
+
+    .Application__loadingMask {
+        z-index: 998;
     }
 </style>

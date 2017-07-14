@@ -89,16 +89,14 @@
     import * as MapDelegate from './map-delegate'
 
     import {
-        SOURCE_ELEVATION,
-        SOURCE_HI_RES_ELEVATION,
+        SOURCE_GROUP_ELEVATION,
         MIN_ALTITUDE,
         MAX_ALTITUDE,
     } from '../../constants'
 
 
     const MAX_RADIUS = {
-        [SOURCE_ELEVATION]: 12000,
-        [SOURCE_HI_RES_ELEVATION]: 1000,
+        [SOURCE_GROUP_ELEVATION]: 12000,
     }
 
 
@@ -118,10 +116,7 @@
             return {
                 MAX_ALTITUDE,
                 MIN_ALTITUDE,
-                SUPPORTED_SOURCES: [
-                    SOURCE_ELEVATION,
-                    SOURCE_HI_RES_ELEVATION,
-                ],
+                SUPPORTED_SOURCES: [SOURCE_GROUP_ELEVATION],
                 draftedOn: moment.now(),
                 isSubmitting: false,
                 name: '',
@@ -158,7 +153,7 @@
             },
 
             maxRadius() {
-                const sourceType = SOURCE_ELEVATION  // FIXME -- compute this somehow
+                const sourceType = SOURCE_GROUP_ELEVATION  // FIXME -- compute this somehow
                 return MAX_RADIUS[sourceType]
             },
         },
@@ -327,7 +322,6 @@
         animation: Viewshed__mapPointFootprint--blink infinite linear 3s;
         stroke-width: 2;
         stroke-dasharray: 10 10;
-        /*fill: hsla(179, 21%, 61%, 1);  !* Based on GulfStream *!*/
         fill: hsla(179, 100%, 75%, .5);  /* Based on GulfStream */
         stroke: hsla(179, 100%, 75%, .7);  /* Based on GulfStream */
     }
