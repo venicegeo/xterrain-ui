@@ -30,7 +30,7 @@
                 caption="Radius (m)"
                 :value="radius"
                 :min="1"
-                :max="maxRadius"
+                :max="12000"
                 :onChange="onRadiusChange"
             />
 
@@ -95,11 +95,6 @@
     } from '../../constants'
 
 
-    const MAX_RADIUS = {
-        [SOURCE_GROUP_ELEVATION]: 12000,
-    }
-
-
     export default {
         LABEL: 'Viewshed',
 
@@ -150,11 +145,6 @@
                 return this.source
                     && this.point
                     && this.radius
-            },
-
-            maxRadius() {
-                const sourceType = SOURCE_GROUP_ELEVATION  // FIXME -- compute this somehow
-                return MAX_RADIUS[sourceType]
             },
         },
 
