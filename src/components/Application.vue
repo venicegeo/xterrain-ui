@@ -73,10 +73,19 @@
             }),
 
             ...mapActions([
+                'disableAnalyticsPolling',
                 'fetchAnalytics',
                 'fetchUserProfile',
                 'fetchSources',
             ]),
+        },
+
+        watch: {
+            isSessionActive() {
+                if (!this.isSessionActive) {
+                    this.disableAnalyticsPolling()
+                }
+            },
         },
     }
 </script>

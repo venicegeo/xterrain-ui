@@ -165,6 +165,16 @@ const store = new Vuex.Store({
             context.commit('CHANGE_ANALYTICS_POLLING', { frequency, ref })
         },
 
+        disableAnalyticsPolling(context) {
+            console.debug('[store] Disabling analytics polling')
+
+            clearTimeout(context.state.analytics.pollingRef)
+            context.commit('CHANGE_ANALYTICS_POLLING', {
+                pollingFrequency: null,
+                pollingRef: null,
+            })
+        },
+
         fetchAnalytics(context, { enablePolling } = {}) {
             context.commit('FETCH_ANALYTICS_START')
             return getClient().get('/api/analytics')
