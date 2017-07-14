@@ -36,7 +36,7 @@
 
 <script>
     import axios from 'axios'
-    import { mapGetters, mapMutations } from 'vuex'
+    import { mapMutations } from 'vuex'
 
     import {
         getSourceFootprintId,
@@ -109,7 +109,7 @@
 
         methods: {
             ...mapMutations({
-                'appendError': 'APPEND_ERROR',
+                'onError': 'APPEND_ERROR',
             }),
 
             checkInternalValue() {
@@ -137,7 +137,7 @@
                         this.isShowingFootprint = true
                     })
                     .catch(err => {
-                        this.appendError({
+                        this.onError({
                             heading: 'Could not fetch and render data source footprint',
                             message: err.response
                                 ? `A server error prevents the retrieval of the footprint for
