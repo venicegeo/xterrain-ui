@@ -5,6 +5,7 @@
     "axios": "0.15.3",
     "font-awesome": "4.6.1",
     "leaflet": "1.0.3",
+    "leaflet-draw": "0.4.10",
     "leaflet.markercluster": "1.0.5",
     "moment": "2.17.0",
     "vue": "2.3.4",

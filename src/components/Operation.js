@@ -1,8 +1,10 @@
+import ConnectedViewshed from './connected-viewshed/ConnectedViewshed.vue'
 import GeoRing from './georing/GeoRing.vue'
 import UnknownOperation from './UnknownOperation.vue'
 import Viewshed from './viewshed/Viewshed.vue'
 
 const AVAILABLE_COMPONENTS = {
+    'connected_viewshed': ConnectedViewshed,
     'georing': GeoRing,
     'viewshed': Viewshed,
 }

@@ -644,7 +644,7 @@
     .GeoRing .FileUploader__caption,
     .GeoRing__rowCaption {
         display: block;
-        margin-bottom: .25em;
+        margin-bottom: .15em;
         min-width: 100px;
     }
 
