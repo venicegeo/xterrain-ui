@@ -15,6 +15,7 @@ const [BASEMAP_LAYERS, DEFAULT_BASEMAP] = createBasemapLayers()
 
 let _map,
     _currentBasemap,
+    _currentSourceFootprint,
     _delegate
 
 const _wms = new EnhancedLayerGroup()
@@ -121,6 +122,61 @@ export function subscribeToWmsLayerChanges(callback) {
 export function getWmsLayers() {
     console.debug('[primary-map] Listing all WMS layers')
     return _wms.map(l => l.canonicalId)
+}
+
+/**
+ * @param {string} sourceId -
+ * @param {Object} geojson -
+ * @returns {void}
+ */
+export function setSourceFootprint({ sourceId, geojson }) {
+    if (!sourceId) {
+        throw new Error('must specify a source ID')
+    }
+
+    if (!geojson) {
+        throw new Error('must specify a valid GeoJSON object')
+    }
+
+    clearSourceFootprint()
+
+    console.debug('[primary-map] Rendering source "%s" footprint', sourceId)
+
+    _currentSourceFootprint = L.geoJSON(geojson, {
+        style: () => ({
+            className: 'PrimaryMap__sourceFootprint',
+        }),
+    })
+
+    _currentSourceFootprint.sourceId = sourceId
+
+    _currentSourceFootprint.bindTooltip(`Coverage for data source <code>${sourceId}</code>`, {
+        permanent: true,
+        direction: 'top',
+    })
+
+    _currentSourceFootprint.addTo(_map)
+
+    _map.once('moveend', () => _currentSourceFootprint.openTooltip())
+
+    flyToBounds(_currentSourceFootprint.getBounds())
+}
+
+/**
+ * @returns {string} -
+ */
+export function getSourceFootprintId() {
+    return _currentSourceFootprint ? _currentSourceFootprint.sourceId : null
+}
+
+export function clearSourceFootprint() {
+    if (!_currentSourceFootprint) {
+        return  // Nothing to do
+    }
+
+    console.debug('[primary-map] Removing current source footprint')
+    _currentSourceFootprint.remove()
+    _currentSourceFootprint = null
 }
 
 /**

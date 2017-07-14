@@ -52,6 +52,16 @@
         opacity: .4;
     }
 
+    .PrimaryMap__sourceFootprint {
+        fill: #FDD835;
+        fill-opacity: .2;
+        stroke: #FDD835;
+        stroke-opacity: 1;
+        stroke-width: 2;
+        stroke-linecap: miter;
+        cursor: inherit;
+    }
+
     .leaflet-bar {
         border-radius: 0 !important;
         border: none !important;
