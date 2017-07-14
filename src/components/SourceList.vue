@@ -137,11 +137,12 @@
                         this.isShowingFootprint = true
                     })
                     .catch(err => {
+                        const {response} = err
                         this.onError({
                             heading: 'Could not fetch and render data source footprint',
-                            message: err.response
+                            message: response
                                 ? `A server error prevents the retrieval of the footprint for
-                                   this data source (HTTP ${err.response.status}).`
+                                   this data source (HTTP ${response.status}${response.data.error ? ': ' + response.data.error : ''}).`
                                 : `An application error prevents the retrieval and/or rendering
                                   of the footprint for this data source (${err})`
                         })
