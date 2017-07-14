@@ -115,7 +115,7 @@
                 draftedOn: moment.now(),
                 isSubmitting: false,
                 name: '',
-                observerHeight: 500,
+                observerHeight: 3,
                 point: null,
                 radius: 12000,
                 source: '',
