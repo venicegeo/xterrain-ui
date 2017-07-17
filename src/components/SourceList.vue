@@ -58,17 +58,25 @@
         data() {
             return {
                 internalValue: null,
-                isShowingFootprint: !!getSourceFootprintId(),
+                isShowingFootprint: false,
             }
         },
 
-        mounted() {
-            this.checkInternalValue()
+        created() {
+            this.normalizeValue()
+        },
+
+        beforeDestroy() {
+            clearSourceFootprint()
         },
 
         computed: {
             allSources() {
                 return this.$store.state.sources.items
+            },
+
+            availableSources() {
+                return this.allSources.filter(s => this.groups.indexOf(s.group_id) !== -1)
             },
 
             elevationSources() {
@@ -77,12 +85,6 @@
 
             frictionSources() {
                 return this.allSources.filter(s => s.group_id === SOURCE_GROUP_FRICTION)
-            },
-
-            firstAvailableSource() {
-                return this.allSources
-                    .filter(s => this.groups.indexOf(s.group_id) !== -1)
-                    .shift()
             },
 
             includesElevation() {
@@ -96,7 +98,7 @@
 
         watch: {
             allSources() {
-                this.checkInternalValue()
+                this.normalizeValue()
             },
 
             internalValue() {
@@ -112,9 +114,10 @@
                 'onError': 'APPEND_ERROR',
             }),
 
-            checkInternalValue() {
-                if (!this.internalValue && this.firstAvailableSource) {
-                    this.internalValue = this.firstAvailableSource.id
+            normalizeValue() {
+                const availableValues = this.availableSources.map(s => s.id)
+                if (availableValues.indexOf(this.internalValue) === -1) {
+                    this.internalValue = availableValues[0] || null
                 }
             },
 
