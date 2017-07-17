@@ -35,7 +35,7 @@
 </template>
 
 <script>
-    import axios from 'axios'
+    import axios, { CancelToken } from 'axios'
     import { mapMutations } from 'vuex'
 
     import {
@@ -130,7 +130,13 @@
                     return
                 }
 
-                axios.get(`/api/sources/${sourceId}`)
+                if (this.cancelFootprintRequest) {
+                    this.cancelFootprintRequest()
+                }
+
+                const cancelToken = new axios.CancelToken(cancel => this.cancelFootprintRequest = cancel)
+
+                axios.get(`/api/sources/${sourceId}`, { cancelToken })
                     .then(response => {
                         setSourceFootprint({
                             sourceId,
@@ -140,6 +146,10 @@
                         this.isShowingFootprint = true
                     })
                     .catch(err => {
+                        if (axios.isCancel(err)) {
+                            return  // Nothing to do
+                        }
+
                         const {response} = err
                         this.onError({
                             heading: 'Could not fetch and render data source footprint',
