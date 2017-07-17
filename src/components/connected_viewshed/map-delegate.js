@@ -94,6 +94,14 @@ export function recenter() {
     flyToBounds(_features.getBounds())
 }
 
+export function computeBounds(points) {
+    return L.polyline(points.map(p => ({ lat: p.latitude, lng: p.longitude })))
+        .getBounds()
+        .toBBoxString()
+        .split(',')
+        .map(parseFloat)
+}
+
 /**
  * @param {{ latitude: number, longitude: number }[]} points -
  * @returns {void}

@@ -35,7 +35,7 @@
 </template>
 
 <script>
-    import axios, { CancelToken } from 'axios'
+    import axios from 'axios'
     import { mapMutations } from 'vuex'
 
     import {
