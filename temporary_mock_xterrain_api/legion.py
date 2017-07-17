@@ -60,7 +60,7 @@ def execute(operation, source, format_, params, context=None):
     _log.info('[%s] Execute "%s"', context, url)
 
     try:
-        response = requests.get(url, stream=True)
+        response = requests.get(url, verify=False, stream=True)
     except requests.ConnectionError as err:
         _log.error('[%s] Legion is unreachable'
                    '---\n\n'
@@ -88,7 +88,7 @@ def execute(operation, source, format_, params, context=None):
 def get_sources():
     _check_settings()
 
-    url = '{}://{}/legion?{}'.format(
+    url = '{}://{}/legion/?{}'.format(
         LEGION_SCHEME,
         LEGION_HOST,
         urllib.parse.urlencode({
@@ -106,7 +106,7 @@ def get_sources():
 
     _log.info('Looking up available datasources via "%s"', url)
     try:
-        response = requests.get(url)
+        response = requests.get(url, verify=False)
     except requests.ConnectionError as err:
         _log.error('Legion is unreachable'
                    '---\n\n'
@@ -148,7 +148,7 @@ def get_sources():
 
 
 def get_source_footprint(source):
-    url = '{}://{}/legion?{}'.format(
+    url = '{}://{}/legion/?{}'.format(
         LEGION_SCHEME,
         LEGION_HOST,
         urllib.parse.urlencode({
@@ -166,7 +166,7 @@ def get_source_footprint(source):
 
     _log.info('Fetching footprint for datasource "%s" via "%s"', source, url)
     try:
-        response = requests.get(url)
+        response = requests.get(url, verify=False)
     except requests.ConnectionError as err:
         _log.error('Legion is unreachable'
                    '---\n\n'
