@@ -28,7 +28,7 @@ export function activate({ onPointsChanged }) {
 
     setDelegate({
         install(map) {
-            console.debug('[connected-viewshed:map-delegate] Installing')
+            console.debug('[connected_viewshed:map-delegate] Installing')
 
             _map = map
 
@@ -66,7 +66,7 @@ export function activate({ onPointsChanged }) {
             _onPointsChanged = onPointsChanged
         },
         destroy() {
-            console.debug('[connected-viewshed:map-delegate] Destroying')
+            console.debug('[connected_viewshed:map-delegate] Destroying')
 
             _onPointsChanged = null
 
@@ -113,7 +113,7 @@ export function renderPoints(points) {
         return  // Nothing to do
     }
 
-    console.debug('[connected-viewshed:map-delegate] Rendering linestring of %d vertices', points.length)
+    console.debug('[connected_viewshed:map-delegate] Rendering linestring of %d vertices', points.length)
     const layer = L.polyline(points.map(p => ({ lat: p.latitude, lng: p.longitude })), {
         className: POLYLINE_CLASSNAME,
     })

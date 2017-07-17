@@ -147,7 +147,7 @@
                 name: '',
                 observerHeight: 3,
                 outerRadius: 500,
-                points: [{longitude: -77.45262622833253, latitude: 38.771718256607}, {longitude: -77.45125293731691, latitude: 38.77151750336502}],
+                points: [],
                 source: '',
                 startAzimuth: 0,
                 targetHeight: MIN_ALTITUDE,
