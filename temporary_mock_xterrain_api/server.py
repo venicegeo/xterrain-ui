@@ -5,6 +5,7 @@ import datetime
 import logging
 import os
 import random
+import traceback
 
 from bottle import run, request, response, redirect, post, get, static_file
 
@@ -148,7 +149,98 @@ def create_viewshed():
         response.status = err.status
         return {'error': 'Legion execution failed: {}'.format(err)}
     except Exception as err:
-        print(err)  # ¯\_(ツ)_/¯
+        print('!' * 120,
+              'Execution Error: {}'.format(err),
+              traceback.format_exc(),
+              '!' * 120,
+              sep='\n\n')
+        response.status = 500
+        return {'error': 'Unknown error occurred'.format(err)}
+
+    layer['processing_ended_on'] = _create_timestamp()
+
+    _analytics.append(analytic)
+
+    response.status = 201
+
+    return {'analytic': analytic}
+
+
+@post('/api/connected_viewshed/create_analytic')
+def create_connected_viewshed():
+    if not _logged_in():
+        response.status = 401
+        return {'error': 'You are not logged in'}
+
+    try:
+        reader = PayloadReader(request.json)
+        name            = reader.string('name', min_length=1)
+        source          = reader.string('source', min_length=1)
+        linestring      = reader.array('linestring', min_length=2)
+        bbox            = reader.array('bbox', min_length=4, max_length=4)
+        start_azimuth   = reader.number('start_azimuth', min_value=0, max_value=360)
+        end_azimuth     = reader.number('end_azimuth', min_value=0, max_value=360)
+        target_height   = reader.number('target_height')
+        observer_height = reader.number('observer_height', min_value=0)
+        inner_radius    = reader.number('inner_radius', min_value=1)
+        outer_radius    = reader.number('outer_radius', min_value=1)
+    except PayloadReader.Error as err:
+        response.status = 400
+        return {'error': 'Invalid payload: {}'.format(err)}
+
+    analytic_id = '{:05}'.format(len(_analytics))
+    layer_id = os.urandom(5).hex()
+
+    layer = {
+        'id': layer_id,
+        'geoserver_id': None,
+        'name': 'Connected Viewshed ({} @ {})'.format(source, ', '.join(str(round(n, 2)) for n in bbox)),
+        'operation': 'connected_viewshed',
+        'status': 'Ready',
+        'processing_started_on': _create_timestamp(),
+        'processing_ended_on': None,
+    }
+
+    analytic = {
+        'id': analytic_id,
+        'name': name,
+        'status': 'Ready',
+        'created_on': _create_timestamp(),
+        'layers': [layer],
+    }
+
+    try:
+        tiff_path = legion.execute(
+            operation='LegionConnectedViewshedOperation',
+            source=source,
+            format_='GEOTIFF',
+            bbox=','.join(str(n) for n in bbox),
+            params={
+                'polyline': '+'.join('{longitude}+{latitude}'.format(**p) for p in linestring),
+                'startAzimuth': start_azimuth,
+                'endAzimuth': end_azimuth,
+                'observerHeight': observer_height,
+                'targetHeight': target_height,
+                'innerRadius': inner_radius,
+                'outerRadius': outer_radius,
+                'normalize': 'RADIUS',  # This magic string looks like it's required by Legion Core for... reasons?
+                'normalizeScaleValue': 255,  # This magic number looks like it's required by Legion Core for... reasons?
+            },
+            context=analytic['id'],
+        )
+
+        layer['geoserver_id'] = geoserver.publish_geotiff('connected_viewshed', tiff_path, title=name, style=DEFAULT_STYLE_ID)
+    except geoserver.ObjectExists:
+        layer['geoserver_id'] = os.path.basename(tiff_path)  # HACK
+    except legion.ExecutionFailed as err:
+        response.status = err.status
+        return {'error': 'Legion execution failed: {}'.format(err)}
+    except Exception as err:
+        print('!' * 120,
+              'Execution Error: {}'.format(err),
+              traceback.format_exc(),
+              '!' * 120,
+              sep='\n\n')
         response.status = 500
         return {'error': 'Unknown error occurred'.format(err)}
 
@@ -443,7 +535,7 @@ def _extend_session():
 
 
 def _initialize_geoserver_workspaces():
-    for workspace in ('viewshed', 'georing',):
+    for workspace in ('connected_viewshed', 'viewshed', 'georing',):
         if geoserver.workspace_exists(workspace):
             continue
         geoserver.create_workspace(workspace)
@@ -473,6 +565,23 @@ class PayloadReader:
         value = self._payload.get(key)
         if value is None and not optional:
             raise self.Error('"{}" is not set'.format(key))
+        return value
+
+    def array(self, key, min_length=None, max_length=None, optional=False):
+        value = self._read(key, optional)
+
+        if not isinstance(value, list):
+            raise self.Error('"{}" must be a list'.format(key))
+
+        if min_length is not None and max_length is not None and not min_length <= len(value) <= max_length:
+            raise self.Error('"{}" must be a list of between {} and {} items'.format(key, min_length, max_length))
+
+        if min_length is not None and len(value) < min_length:
+            raise self.Error('"{}" must be a list of {} or more items'.format(key, min_length))
+
+        if max_length is not None and len(value) > max_length:
+            raise self.Error('"{}" must be a list of {} or less items'.format(key, max_length))
+
         return value
 
     def string(self, key, min_length=0, max_length=256, optional=False):

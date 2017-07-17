@@ -1,4 +1,5 @@
 import datetime as dt
+import hashlib
 import json
 import logging
 import os
@@ -24,13 +25,14 @@ FORMAT_PNG     = 'PNG'
 _log = logging.getLogger(__name__)
 
 
-def execute(operation, source, format_, params, context=None):
+def execute(operation, source, format_, params, bbox=None, context=None):
     """
     :type operation: unicode
     :type source: unicode
     :type format_: unicode
     :type params: dict
-    :type context: unicode
+    :type bbox: unicode?
+    :type context: unicode?
     :rtype: unicode
     """
 
@@ -44,17 +46,22 @@ def execute(operation, source, format_, params, context=None):
         _log.info('[%s] Read "%s" from cache', context, os.path.basename(cachefile_path))
         return cachefile_path
 
-    url = '{}://{}/legion?{}'.format(
+    url_params = {
+        'REQUEST': 'Execute',
+        'FORMAT': format_,
+        'DATASOURCE': source,
+        'OPERATION': operation,
+        'PARAMETERS': serialized_params,
+        'token': LEGION_TOKEN,
+    }
+
+    if bbox:
+        url_params['BBOX'] = bbox
+
+    url = '{}://{}/legion/?{}'.format(
         LEGION_SCHEME,
         LEGION_HOST,
-        urllib.parse.urlencode({
-            'REQUEST': 'Execute',
-            'FORMAT': format_,
-            'DataSource': source,
-            'Operation': operation,
-            'Parameters': serialized_params,
-            'token': LEGION_TOKEN,
-        }),
+        urllib.parse.urlencode(url_params),
     )
 
     _log.info('[%s] Execute "%s"', context, url)
@@ -248,7 +255,7 @@ def _check_settings():
 def _create_filepath(operation, source, format_, params):
     filename = '{operation}___{source}___{params}.{extension}'.format(
         operation=operation, source=source,
-        params=re.sub(r'[^\w.]', '_', params.replace(',', '___')),
+        params=hashlib.sha256(re.sub(r'[^\w.]', '_', params.replace(',', '___')).encode()).hexdigest(),
         extension=re.sub(r'^GEO', '', format_).upper(),
     )
     return os.path.join(LEGION_CACHE_DIR, filename.upper())
