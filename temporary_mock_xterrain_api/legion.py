@@ -40,7 +40,7 @@ def execute(operation, source, format_, params, bbox=None, context=None):
 
     serialized_params = ','.join(':'.join([k, str(v)]) for k, v in sorted(params.items()))
 
-    cachefile_path = _create_filepath(operation, source, format_, serialized_params)
+    cachefile_path = _create_filepath(operation, source, format_, serialized_params, bbox)
 
     if os.path.exists(cachefile_path):
         _log.info('[%s] Read "%s" from cache', context, os.path.basename(cachefile_path))
@@ -252,10 +252,10 @@ def _check_settings():
         raise Error(''.join(errors))
 
 
-def _create_filepath(operation, source, format_, params):
-    filename = '{operation}___{source}___{params}.{extension}'.format(
+def _create_filepath(operation, source, format_, params, bbox):
+    filename = '{operation}___{source}___{param_hash}.{extension}'.format(
         operation=operation, source=source,
-        params=hashlib.sha256(re.sub(r'[^\w.]', '_', params.replace(',', '___')).encode()).hexdigest(),
+        param_hash=hashlib.sha256('{},bbox:{}'.format(params, bbox).encode()).hexdigest(),
         extension=re.sub(r'^GEO', '', format_).upper(),
     )
     return os.path.join(LEGION_CACHE_DIR, filename.upper())

@@ -19,6 +19,7 @@ SECRET_KEY = 'secret'
 STYLE_BINARY = 'binary'
 STYLE_RAINBOW = 'rainbow'
 STYLE_GREENSCALE = 'greenscale'
+STYLE_GREYSCALE = 'greyscale'
 
 
 _analytics = []
@@ -118,6 +119,81 @@ def create_viewshed():
         )
 
         layer['geoserver_id'] = geoserver.publish_geotiff('viewshed', tiff_path, title=name, style=STYLE_BINARY)
+    except geoserver.ObjectExists:
+        layer['geoserver_id'] = os.path.basename(tiff_path)  # HACK
+    except legion.ExecutionFailed as err:
+        response.status = err.status
+        return {'error': 'Legion execution failed: {}'.format(err)}
+    except Exception as err:
+        print('!' * 120,
+              'Execution Error: {}'.format(err),
+              traceback.format_exc(),
+              '!' * 120,
+              sep='\n\n')
+        response.status = 500
+        return {'error': 'Unknown error occurred'.format(err)}
+
+    layer['processing_ended_on'] = _create_timestamp()
+
+    _analytics.append(analytic)
+
+    response.status = 201
+
+    return {'analytic': analytic}
+
+
+@post('/api/hillshade/create_analytic')
+def create_hillshade():
+    if not _logged_in():
+        response.status = 401
+        return {'error': 'You are not logged in'}
+
+    try:
+        reader = PayloadReader(request.json)
+        bbox         = reader.array('bbox', min_length=4, max_length=4)
+        name         = reader.string('name', min_length=1)
+        source       = reader.string('source', min_length=1)
+        sun_azimuth  = reader.number('sun_azimuth', min_value=0, max_value=360)
+        sun_altitude = reader.number('sun_altitude', min_value=0, max_value=360)
+    except PayloadReader.Error as err:
+        response.status = 400
+        return {'error': 'Invalid payload: {}'.format(err)}
+
+    analytic_id = '{:05}'.format(len(_analytics))
+    layer_id = os.urandom(5).hex()
+
+    layer = {
+        'id': layer_id,
+        'geoserver_id': None,
+        'name': 'Hillshade ({} @ {})'.format(source, source, ', '.join(str(round(n, 2)) for n in bbox)),
+        'operation': 'hillshade',
+        'status': 'Ready',
+        'processing_started_on': _create_timestamp(),
+        'processing_ended_on': None,
+    }
+
+    analytic = {
+        'id': analytic_id,
+        'name': name,
+        'status': 'Ready',
+        'created_on': _create_timestamp(),
+        'layers': [layer],
+    }
+
+    try:
+        tiff_path = legion.execute(
+            operation='LegionHillshadeOperation',
+            source=source,
+            format_='GEOTIFF',
+            bbox=','.join(str(n) for n in bbox),
+            params={
+                'sunAltitudeAngle': sun_altitude,
+                'sunAzimuth': sun_azimuth,
+            },
+            context=analytic['id'],
+        )
+
+        layer['geoserver_id'] = geoserver.publish_geotiff('hillshade', tiff_path, title=name, style=STYLE_GREYSCALE)
     except geoserver.ObjectExists:
         layer['geoserver_id'] = os.path.basename(tiff_path)  # HACK
     except legion.ExecutionFailed as err:
@@ -665,6 +741,7 @@ def _initialize_geoserver_workspaces():
     for workspace in (
             'connected_viewshed',
             'cost_distance',
+            'hillshade',
             'georing',
             'viewshed',
     ):
@@ -756,6 +833,33 @@ def _initialize_geoserver_styles():
                           <ColorMapEntry color="#008000" quantity="${env('three',128)}" label="three" opacity="0.50"/>
                           <ColorMapEntry color="#008000" quantity="${env('four',192)}" label="four" opacity="0.70"/>
                           <ColorMapEntry color="#008000" quantity="${env('five',255)}" label="five" opacity="0.90"/>
+                        </ColorMap>
+                      </RasterSymbolizer>
+                    </Rule>
+                  </FeatureTypeStyle>
+                </UserStyle>
+              </NamedLayer>
+            </StyledLayerDescriptor>
+        """,
+
+        STYLE_GREYSCALE: """
+            <?xml version="1.0" encoding="ISO-8859-1"?>
+            <StyledLayerDescriptor version="1.0.0"
+                xsi:schemaLocation="http://www.opengis.net/sld StyledLayerDescriptor.xsd"
+                xmlns="http://www.opengis.net/sld"
+                xmlns:ogc="http://www.opengis.net/ogc"
+                xmlns:xlink="http://www.w3.org/1999/xlink"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+              <NamedLayer>
+                <Name>Two color gradient</Name>
+                <UserStyle>
+                  <Title>SLD Cook Book: Two color gradient</Title>
+                  <FeatureTypeStyle>
+                    <Rule>
+                      <RasterSymbolizer>
+                        <ColorMap>
+                          <ColorMapEntry color="#000000" quantity="${env('low',0)}" label="Low" opacity="0.50"/>
+                          <ColorMapEntry color="#FFFFFF" quantity="${env('high',255)}" label="High" opacity="0.50"/>
                         </ColorMap>
                       </RasterSymbolizer>
                     </Rule>
