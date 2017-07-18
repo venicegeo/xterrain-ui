@@ -122,7 +122,8 @@ function onDrawCreated(event) {
 }
 
 function onDrawEdited(event) {
-    _onRectangleChanged(toBoundingBox(event.layer))
+    const [layer] = event.layers.getLayers()
+    _onRectangleChanged(toBoundingBox(layer))
 }
 
 function onDrawDeleted(event) {
