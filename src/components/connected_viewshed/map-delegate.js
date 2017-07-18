@@ -77,6 +77,7 @@ export function activate({ onPointsChanged }) {
             _map = null
 
             _drawControl.remove()
+            _drawControl = null
 
             _features.remove()
             _features.clearLayers()

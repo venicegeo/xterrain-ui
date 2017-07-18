@@ -71,6 +71,7 @@ export function recenter() {
  * @returns {void}
  */
 export function renderPoint({ point, innerRadius, outerRadius }) {
+    console.debug('[georing:map-delegate] Rendering point')
 
     const latlng = { lat: point.latitude, lng: point.longitude }
 

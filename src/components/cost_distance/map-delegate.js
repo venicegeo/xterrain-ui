@@ -89,7 +89,6 @@ export function renderPoint({ point, distance }) {
     else {
         _features.footprint = L.rectangle(bounds, {
             className: FOOTPRINT_CLASS,
-            distance,
         }).addTo(_features)
     }
 }
