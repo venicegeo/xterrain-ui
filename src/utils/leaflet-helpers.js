@@ -50,3 +50,23 @@ export class EnhancedLayerGroup extends L.LayerGroup {
         return layers
     }
 }
+
+/**
+ * Convert a point to a bounding box with a predefined buffer
+ *
+ * @param {{latitude: number, longitude: number}} point -
+ * @param {number} padding Buffer size (in decimal degrees)
+ * @returns {L.LatLngBounds} -
+ */
+export function toBounds({ latitude, longitude }, padding = 1.0) {
+    return L.latLngBounds(
+        {
+            lng: longitude - padding,
+            lat: latitude - padding,
+        },
+        {
+            lng: longitude + padding,
+            lat: latitude + padding
+        },
+    )
+}

@@ -16,34 +16,9 @@ import geoserver
 API_KEY = '1234'
 SECRET_KEY = 'secret'
 
-DEFAULT_STYLE_ID = 'binary'
-
-DEFAULT_STYLE_DEFINITION = """
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<StyledLayerDescriptor version="1.0.0"
-    xsi:schemaLocation="http://www.opengis.net/sld StyledLayerDescriptor.xsd"
-    xmlns="http://www.opengis.net/sld"
-    xmlns:ogc="http://www.opengis.net/ogc"
-    xmlns:xlink="http://www.w3.org/1999/xlink"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <NamedLayer>
-    <Name>Viewshed Binary</Name>
-    <UserStyle>
-      <Title>Viewshed Binary Style</Title>
-      <FeatureTypeStyle>
-        <Rule>
-          <RasterSymbolizer>
-            <ColorMap>
-              <ColorMapEntry color="#008000" quantity="0"  opacity="0.0"/>
-              <ColorMapEntry color="#00FF00" quantity="1"  opacity="0.50"/>
-            </ColorMap>
-          </RasterSymbolizer>
-        </Rule>
-      </FeatureTypeStyle>
-    </UserStyle>
-  </NamedLayer>
-</StyledLayerDescriptor>
-"""
+STYLE_BINARY = 'binary'
+STYLE_RAINBOW = 'rainbow'
+STYLE_GREENSCALE = 'greenscale'
 
 
 _analytics = []
@@ -142,7 +117,7 @@ def create_viewshed():
             context=analytic['id'],
         )
 
-        layer['geoserver_id'] = geoserver.publish_geotiff('viewshed', tiff_path, title=name, style=DEFAULT_STYLE_ID)
+        layer['geoserver_id'] = geoserver.publish_geotiff('viewshed', tiff_path, title=name, style=STYLE_BINARY)
     except geoserver.ObjectExists:
         layer['geoserver_id'] = os.path.basename(tiff_path)  # HACK
     except legion.ExecutionFailed as err:
@@ -219,7 +194,82 @@ def create_georing():
             context=analytic['id'],
         )
 
-        layer['geoserver_id'] = geoserver.publish_geotiff('georing', tiff_path, title=name, style=DEFAULT_STYLE_ID)
+        layer['geoserver_id'] = geoserver.publish_geotiff('georing', tiff_path, title=name, style=STYLE_BINARY)
+    except geoserver.ObjectExists:
+        layer['geoserver_id'] = os.path.basename(tiff_path)  # HACK
+    except legion.ExecutionFailed as err:
+        response.status = err.status
+        return {'error': 'Legion execution failed: {}'.format(err)}
+    except Exception as err:
+        print('!' * 120,
+              'Execution Error: {}'.format(err),
+              traceback.format_exc(),
+              '!' * 120,
+              sep='\n\n')
+        response.status = 500
+        return {'error': 'Unknown error occurred'.format(err)}
+
+    layer['processing_ended_on'] = _create_timestamp()
+
+    _analytics.append(analytic)
+
+    response.status = 201
+
+    return {'analytic': analytic}
+
+
+@post('/api/cost_distance/create_analytic')
+def create_cost_distance():
+    if not _logged_in():
+        response.status = 401
+        return {'error': 'You are not logged in'}
+
+    try:
+        reader = PayloadReader(request.json)
+        name      = reader.string('name', min_length=1)
+        source    = reader.string('source', min_length=1)
+        latitude  = reader.number('latitude', min_value=-90, max_value=90)
+        longitude = reader.number('longitude', min_value=-180, max_value=180)
+        bbox      = reader.array('bbox', min_length=4, max_length=4)
+    except PayloadReader.Error as err:
+        response.status = 400
+        return {'error': 'Invalid payload: {}'.format(err)}
+
+    analytic_id = '{:05}'.format(len(_analytics))
+    layer_id = os.urandom(5).hex()
+
+    layer = {
+        'id': layer_id,
+        'geoserver_id': None,
+        'name': 'Cost Distance ({} @ {})'.format(source, ', '.join(str(round(n, 2)) for n in bbox)),
+        'operation': 'cost_distance',
+        'status': 'Ready',
+        'processing_started_on': _create_timestamp(),
+        'processing_ended_on': None,
+    }
+
+    analytic = {
+        'id': analytic_id,
+        'name': name,
+        'status': 'Ready',
+        'created_on': _create_timestamp(),
+        'layers': [layer],
+    }
+
+    try:
+        tiff_path = legion.execute(
+            operation='LegionCostSurfaceOperation',
+            source=source,
+            format_='GEOTIFF',
+            bbox=','.join(str(n) for n in bbox),
+            params={
+                'originPoint': '{longitude}+{latitude}'.format(longitude=longitude, latitude=latitude),
+                'output': 'COST',
+            },
+            context=analytic['id'],
+        )
+
+        layer['geoserver_id'] = geoserver.publish_geotiff('cost_distance', tiff_path, title=name, style=STYLE_RAINBOW)
     except geoserver.ObjectExists:
         layer['geoserver_id'] = os.path.basename(tiff_path)  # HACK
     except legion.ExecutionFailed as err:
@@ -306,7 +356,7 @@ def create_connected_viewshed():
             context=analytic['id'],
         )
 
-        layer['geoserver_id'] = geoserver.publish_geotiff('connected_viewshed', tiff_path, title=name, style=DEFAULT_STYLE_ID)
+        layer['geoserver_id'] = geoserver.publish_geotiff('connected_viewshed', tiff_path, title=name, style=STYLE_GREENSCALE)
     except geoserver.ObjectExists:
         layer['geoserver_id'] = os.path.basename(tiff_path)  # HACK
     except legion.ExecutionFailed as err:
@@ -614,6 +664,7 @@ def _extend_session():
 def _initialize_geoserver_workspaces():
     for workspace in (
             'connected_viewshed',
+            'cost_distance',
             'georing',
             'viewshed',
     ):
@@ -623,9 +674,102 @@ def _initialize_geoserver_workspaces():
 
 
 def _initialize_geoserver_styles():
-    if geoserver.style_exists(DEFAULT_STYLE_ID):
-        return
-    geoserver.create_style(DEFAULT_STYLE_ID, DEFAULT_STYLE_DEFINITION)
+    styles = {
+        STYLE_BINARY: """
+            <?xml version="1.0" encoding="ISO-8859-1"?>
+            <StyledLayerDescriptor version="1.0.0"
+                xsi:schemaLocation="http://www.opengis.net/sld StyledLayerDescriptor.xsd"
+                xmlns="http://www.opengis.net/sld"
+                xmlns:ogc="http://www.opengis.net/ogc"
+                xmlns:xlink="http://www.w3.org/1999/xlink"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+              <NamedLayer>
+                <Name>Viewshed Binary</Name>
+                <UserStyle>
+                  <Title>Viewshed Binary Style</Title>
+                  <FeatureTypeStyle>
+                    <Rule>
+                      <RasterSymbolizer>
+                        <ColorMap>
+                          <ColorMapEntry color="#008000" quantity="0"  opacity="0.0"/>
+                          <ColorMapEntry color="#00FF00" quantity="1"  opacity="0.50"/>
+                        </ColorMap>
+                      </RasterSymbolizer>
+                    </Rule>
+                  </FeatureTypeStyle>
+                </UserStyle>
+              </NamedLayer>
+            </StyledLayerDescriptor>
+        """,
+
+        STYLE_RAINBOW: """
+            <?xml version="1.0" encoding="ISO-8859-1"?>
+            <StyledLayerDescriptor version="1.0.0"
+                xsi:schemaLocation="http://www.opengis.net/sld StyledLayerDescriptor.xsd"
+                xmlns="http://www.opengis.net/sld"
+                xmlns:ogc="http://www.opengis.net/ogc"
+                xmlns:xlink="http://www.w3.org/1999/xlink"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+              <NamedLayer>
+                <Name>Rainbow Cost Distance</Name>
+                <UserStyle>
+                  <Title>Rainbow scale based on travel time</Title>
+                  <FeatureTypeStyle>
+                    <Rule>
+                      <RasterSymbolizer>
+                        <ColorMap>
+                          <ColorMapEntry color="#FF0000" opacity="0.0" quantity="${env('red',-9999)}" label="nodata"/>
+                          <ColorMapEntry color="#FF0000" quantity="${env('red',0)}" label="red" opacity="0.50"/>
+                          <ColorMapEntry color="#FF7F00" quantity="${env('orange',30)}" label="orange" opacity="0.50"/>
+                          <ColorMapEntry color="#FFFF00" quantity="${env('yellow',120)}" label="yellow" opacity="0.50"/>
+                          <ColorMapEntry color="#00FF00" quantity="${env('green',240)}" label="green" opacity="0.50"/>
+                          <ColorMapEntry color="#0000FF" quantity="${env('blue',480)}" label="blue" opacity="0.50"/>
+                          <ColorMapEntry color="#4B0082" quantity="${env('indigo',960)}" label="indigo" opacity="0.50"/>
+                          <ColorMapEntry color="#8B00FF" quantity="${env('violet',1920)}" label="violet" opacity="0.50"/>
+                        </ColorMap>
+                      </RasterSymbolizer>
+                    </Rule>
+                  </FeatureTypeStyle>
+                </UserStyle>
+              </NamedLayer>
+            </StyledLayerDescriptor>
+        """,
+
+        STYLE_GREENSCALE: """
+            <?xml version="1.0" encoding="ISO-8859-1"?>
+            <StyledLayerDescriptor version="1.0.0"
+                xsi:schemaLocation="http://www.opengis.net/sld StyledLayerDescriptor.xsd"
+                xmlns="http://www.opengis.net/sld"
+                xmlns:ogc="http://www.opengis.net/ogc"
+                xmlns:xlink="http://www.w3.org/1999/xlink"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+              <NamedLayer>
+                <Name>Two color gradient</Name>
+                <UserStyle>
+                  <Title>SLD Cook Book: Two color gradient</Title>
+                  <FeatureTypeStyle>
+                    <Rule>
+                      <RasterSymbolizer>
+                        <ColorMap>
+                          <ColorMapEntry color="#008000" quantity="${env('one',0)}"    label="one" opacity="0.10"/>
+                          <ColorMapEntry color="#008000" quantity="${env('two',64)}" label="two" opacity="0.30"/>
+                          <ColorMapEntry color="#008000" quantity="${env('three',128)}" label="three" opacity="0.50"/>
+                          <ColorMapEntry color="#008000" quantity="${env('four',192)}" label="four" opacity="0.70"/>
+                          <ColorMapEntry color="#008000" quantity="${env('five',255)}" label="five" opacity="0.90"/>
+                        </ColorMap>
+                      </RasterSymbolizer>
+                    </Rule>
+                  </FeatureTypeStyle>
+                </UserStyle>
+              </NamedLayer>
+            </StyledLayerDescriptor>
+        """,
+    }
+
+    for name, sld_content in styles.items():
+        if geoserver.style_exists(name):
+            continue
+        geoserver.create_style(name, sld_content)
 
 
 def _logged_in():
