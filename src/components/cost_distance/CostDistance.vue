@@ -202,10 +202,8 @@
             onSourceChange(value) {
                 this.source = value
             },
-        },
 
-        watch: {
-            distance() {
+            rerenderMapPoint() {
                 if (!this.point) {
                     return  // Nothing to do
                 }
@@ -215,12 +213,11 @@
                     distance: this.distance,
                 })
             },
-            point() {
-                MapDelegate.renderPoint({
-                    point: this.point,
-                    distance: this.distance,
-                })
-            },
+        },
+
+        watch: {
+            distance: 'rerenderMapPoint',
+            point: 'rerenderMapPoint',
         },
     }
 </script>
