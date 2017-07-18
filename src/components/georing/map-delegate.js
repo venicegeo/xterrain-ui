@@ -1,41 +1,57 @@
 import L from 'leaflet'
 
-import 'leaflet.markercluster'
-
 import { clearDelegate, setDelegate, flyToBounds } from '../../primary-map'
 
-const CLUSTER_CLASS = 'GeoRing__cluster'
-const CLUSTER_BOUNDS_CLASS = 'GeoRing__clusterBounds'
-const CLUSTER_TOOLTIP_MAX_IDENTIFIERS = 5
-const POINT_CLASS = 'GeoRing__point'
-const POINT_CLASS_SELECTED = 'GeoRing__point GeoRing__point--isSelected'
-const POINT_CLASS_RELATED = 'GeoRing__point--isRelated'
-const TOOLTIP_CLASS = 'GeoRing__pointTooltip'
-const TOOLTIP_DIRECTION = 'top'
+import pointMarkerImage from '../../images/point_marker.svg'
 
-/** @type L.MarkerClusterGroup */
-let _layers
+const POINT_MARKER_ICON = L.icon({
+    iconUrl: pointMarkerImage,
+    iconSize: [30, 15],
+    iconAnchor: [14, 15],
+})
+
+const INNER_FOOTPRINT_CLASS = 'GeoRing__mapRadius GeoRing__mapRadius--inner'
+const OUTER_FOOTPRINT_CLASS = 'GeoRing__mapRadius GeoRing__mapRadius--outer'
 
 
-export function activate({ onPointClick }) {
+/** @type L.FeatureGroup */
+let _features = null
+
+/**
+ * @callback
+ * @param {{ latitude: number, longitude: number }} point
+ */
+let _onPointCreated = null
+
+
+export function activate({ onPointCreated }) {
+    /** @type L.Map */
+    let _map = null
+
     setDelegate({
         install(map) {
             console.debug('[georing:map-delegate] Installing')
-            _layers = createLayerGroup()
 
-            _layers.bindTooltip(l => l.identifier, { className: TOOLTIP_CLASS, direction: TOOLTIP_DIRECTION })
+            _map = map
+            map.on('click', onMapClick)
 
-            _layers.on('mouseover', onPointMouseOver)
-            _layers.on('mouseout', onPointMouseOut)
-            _layers.on('click', (event) => onPointClick(event.layer.identifier))
-            _layers.addTo(map)
+            _features = L.featureGroup()
+            _features.addTo(_map)
+
+            _onPointCreated = onPointCreated
         },
         destroy() {
             console.debug('[georing:map-delegate] Destroying')
-            _layers.remove()
-            _layers.clearLayers()
-            _layers.off()
-            _layers = null
+
+            _onPointCreated = null
+
+            _map.off('click', onMapClick)
+            _map = null
+
+            _features.remove()
+            _features.clearLayers()
+            _features.off()
+            _features = null
         },
     })
 }
@@ -44,32 +60,52 @@ export function deactivate() {
     clearDelegate()
 }
 
-export function fitContents() {
-    flyToBounds(_layers.getBounds())
+export function recenter() {
+    flyToBounds(_features.getBounds())
 }
 
-export function renderPoints(records) {
-    if (!_layers) {
-        throw new Error('this delegate is not activated')
+/**
+ * @param {{ latitude: number, longitude: number }} point -
+ * @param {number} innerRadius -
+ * @param {number} outerRadius -
+ * @returns {void}
+ */
+export function renderPoint({ point, innerRadius, outerRadius }) {
+
+    const latlng = { lat: point.latitude, lng: point.longitude }
+
+    if (_features.marker) {
+        _features.marker.setLatLng(latlng)
+    }
+    else {
+        _features.marker = L.marker(latlng, {
+            icon: POINT_MARKER_ICON,
+        }).addTo(_features)
     }
 
-    console.debug('[georing:map-delegate] Rendering points')
-    _layers.clearLayers()
+    if (_features.innerFootprint) {
+        _features.innerFootprint
+            .setLatLng(latlng)
+            .setRadius(innerRadius)
+    }
+    else {
+        _features.innerFootprint = L.circle(latlng, {
+            className: INNER_FOOTPRINT_CLASS,
+            radius: innerRadius,
+        }).addTo(_features)
+    }
 
-    records.forEach(record => {
-        const points = record.points.map(([x, y]) => {
-            const layer = L.circle({lat: y, lng: x}, {
-                className: record.selected ? POINT_CLASS_SELECTED : POINT_CLASS,
-            })
-
-            layer.identifier = record.identifier
-            layer.selected = record.selected
-
-            return layer
-        })
-
-        _layers.addLayers(points)
-    })
+    if (_features.outerFootprint) {
+        _features.outerFootprint
+            .setLatLng(latlng)
+            .setRadius(outerRadius)
+    }
+    else {
+        _features.outerFootprint = L.circle(latlng, {
+            className: OUTER_FOOTPRINT_CLASS,
+            radius: outerRadius,
+        }).addTo(_features)
+    }
 }
 
 
@@ -77,65 +113,13 @@ export function renderPoints(records) {
 // Internals
 //
 
-function createLayerGroup() {
-    return L.markerClusterGroup({
-        disableClusteringAtZoom: 13,
-        spiderfyOnMaxZoom: false,
-        polygonOptions: {
-            className: CLUSTER_BOUNDS_CLASS,
-        },
-        iconCreateFunction(cluster) {
-            const identifiers = cluster.getAllChildMarkers()
-                .slice(0, CLUSTER_TOOLTIP_MAX_IDENTIFIERS)
-                .map(m => m.identifier)
-
-            let tooltip = identifiers.join(', ')
-
-            const unlistedCount = cluster.getChildCount() - identifiers.length
-            if (unlistedCount) {
-                tooltip += `, and ${unlistedCount} more...`
-            }
-
-            cluster.bindTooltip(tooltip, {
-                className: TOOLTIP_CLASS,
-                direction: TOOLTIP_DIRECTION,
-                offset: [0, -20],
-            })
-
-            return L.divIcon({
-                className: CLUSTER_CLASS,
-                html: `<div>${cluster.getChildCount()}</div>`,
-                iconSize: [40, 40],
-            })
-        },
-    })
-}
-
-function onPointMouseOver(event) {
-    _layers.eachLayer(l => {
-        const element = l.getElement()
-        if (!element) {
-            return  // Nothing is rendered
-        }
-
-        if (l.identifier === event.layer.identifier && event.layer !== l) {
-            // element.classList.add(POINT_CLASS_RELATED)
-            element.setAttribute('class', `${l.selected ? POINT_CLASS_SELECTED : POINT_CLASS} ${POINT_CLASS_RELATED} leaflet-interactive`)  // HACK -- IE11 compat
-        }
-        else {
-            // element.classList.remove(POINT_CLASS_RELATED)
-            element.setAttribute('class', `${l.selected ? POINT_CLASS_SELECTED : POINT_CLASS} leaflet-interactive`)  // HACK -- IE11 compat
-        }
-    })
-}
-
-function onPointMouseOut() {
-    _layers.eachLayer(l => {
-        const element = l.getElement()
-        if (!element) {
-            return  // Nothing is rendered
-        }
-        // element.classList.remove(POINT_CLASS_RELATED)
-        element.setAttribute('class', `${l.selected ? POINT_CLASS_SELECTED : POINT_CLASS} leaflet-interactive`)  // HACK -- IE11 compat
+/**
+ * @param {L.MouseEvent} event -
+ * @returns {void}
+ */
+function onMapClick(event) {
+    _onPointCreated({
+        longitude: event.latlng.lng,
+        latitude: event.latlng.lat,
     })
 }

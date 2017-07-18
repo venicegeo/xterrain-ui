@@ -166,6 +166,83 @@ def create_viewshed():
     return {'analytic': analytic}
 
 
+@post('/api/georing/create_analytic')
+def create_georing():
+    if not _logged_in():
+        response.status = 401
+        return {'error': 'You are not logged in'}
+
+    try:
+        reader = PayloadReader(request.json)
+        name         = reader.string('name', min_length=1)
+        source       = reader.string('source', min_length=1)
+        latitude     = reader.number('latitude', min_value=-90, max_value=90)
+        longitude    = reader.number('longitude', min_value=-180, max_value=180)
+        altitude     = reader.number('altitude', min_value=0)
+        inner_radius = reader.number('inner_radius', min_value=1)
+        outer_radius = reader.number('outer_radius', min_value=1)
+    except PayloadReader.Error as err:
+        response.status = 400
+        return {'error': 'Invalid payload: {}'.format(err)}
+
+    analytic_id = '{:05}'.format(len(_analytics))
+    layer_id = os.urandom(5).hex()
+
+    layer = {
+        'id': layer_id,
+        'geoserver_id': None,
+        'name': 'GeoRing ({} @ {}, {})'.format(source, round(latitude, 3), round(longitude, 3)),
+        'operation': 'georing',
+        'status': 'Ready',
+        'processing_started_on': _create_timestamp(),
+        'processing_ended_on': None,
+    }
+
+    analytic = {
+        'id': analytic_id,
+        'name': name,
+        'status': 'Ready',
+        'created_on': _create_timestamp(),
+        'layers': [layer],
+    }
+
+    try:
+        tiff_path = legion.execute(
+            operation='LegionGeoRingOperation',
+            source=source,
+            format_='GEOTIFF',
+            params={
+                'originPoint': '{longitude}+{latitude}+{altitude}'.format(longitude=longitude, latitude=latitude, altitude=altitude),
+                'innerRadius': inner_radius,
+                'outerRadius': outer_radius,
+            },
+            context=analytic['id'],
+        )
+
+        layer['geoserver_id'] = geoserver.publish_geotiff('georing', tiff_path, title=name, style=DEFAULT_STYLE_ID)
+    except geoserver.ObjectExists:
+        layer['geoserver_id'] = os.path.basename(tiff_path)  # HACK
+    except legion.ExecutionFailed as err:
+        response.status = err.status
+        return {'error': 'Legion execution failed: {}'.format(err)}
+    except Exception as err:
+        print('!' * 120,
+              'Execution Error: {}'.format(err),
+              traceback.format_exc(),
+              '!' * 120,
+              sep='\n\n')
+        response.status = 500
+        return {'error': 'Unknown error occurred'.format(err)}
+
+    layer['processing_ended_on'] = _create_timestamp()
+
+    _analytics.append(analytic)
+
+    response.status = 201
+
+    return {'analytic': analytic}
+
+
 @post('/api/connected_viewshed/create_analytic')
 def create_connected_viewshed():
     if not _logged_in():
@@ -535,7 +612,11 @@ def _extend_session():
 
 
 def _initialize_geoserver_workspaces():
-    for workspace in ('connected_viewshed', 'viewshed', 'georing',):
+    for workspace in (
+            'connected_viewshed',
+            'georing',
+            'viewshed',
+    ):
         if geoserver.workspace_exists(workspace):
             continue
         geoserver.create_workspace(workspace)
