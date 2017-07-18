@@ -52,16 +52,16 @@ def execute(operation, source, format_, params, bbox=None, context=None):
         'DATASOURCE': source,
         'OPERATION': operation,
         'PARAMETERS': serialized_params,
-        'token': LEGION_TOKEN,
     }
 
     if bbox:
         url_params['BBOX'] = bbox
 
-    url = '{}://{}/legion/?{}'.format(
+    url = '{}://{}/legion/?token={}&{}'.format(
         LEGION_SCHEME,
         LEGION_HOST,
-        urllib.parse.urlencode(url_params),
+        LEGION_TOKEN,
+        '&'.join('{}={}'.format(k, v) for k, v in url_params.items()),
     )
 
     _log.info('[%s] Execute "%s"', context, url)
@@ -95,13 +95,13 @@ def execute(operation, source, format_, params, bbox=None, context=None):
 def get_sources():
     _check_settings()
 
-    url = '{}://{}/legion/?{}'.format(
+    url = '{}://{}/legion/?token={}&{}'.format(
         LEGION_SCHEME,
         LEGION_HOST,
+        LEGION_TOKEN,
         urllib.parse.urlencode({
             'REQUEST': 'DataSources',
             'FORMAT': 'JSON',
-            'token': LEGION_TOKEN,
         }),
     )
 
@@ -155,13 +155,13 @@ def get_sources():
 
 
 def get_source_footprint(source):
-    url = '{}://{}/legion/?{}'.format(
+    url = '{}://{}/legion/?token={}&{}'.format(
         LEGION_SCHEME,
         LEGION_HOST,
+        LEGION_TOKEN,
         urllib.parse.urlencode({
             'REQUEST': 'Footprint',
             'DATASOURCE': source,
-            'token': LEGION_TOKEN,
         }),
     )
 
